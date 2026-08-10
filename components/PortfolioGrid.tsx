@@ -167,7 +167,7 @@ export function PortfolioGrid() {
         );
 
   return (
-    <section ref={sectionRef} id="grid" className="py-32 px-6 md:px-12 max-w-[1700px] mx-auto border-t border-border-custom select-none">
+    <section ref={sectionRef} id="grid" className="py-32 px-6 md:px-12 max-w-[1700px] mx-auto border-t border-border-custom">
       {/* Section Header */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-16 gap-8">
         <div>
@@ -191,7 +191,7 @@ export function PortfolioGrid() {
       <div className="grid grid-cols-12 gap-8 md:gap-12">
         {filteredStudies.map((study, index) => {
           const cardClassName = `${study.span} group flex flex-col justify-between${
-            study.href ? " cursor-pointer" : ""
+            study.href ? " cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground" : ""
           }`;
 
           const cardBody = (

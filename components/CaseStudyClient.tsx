@@ -181,7 +181,7 @@ export function CaseStudyClient({ project }: { project: ProjectDetail }) {
       <section className="px-6 md:px-12 max-w-[1700px] mx-auto pb-24 md:pb-32">
         <Link
           href={`/work/${project.nextSlug}`}
-          className="group block p-8 md:p-14 rounded-none bg-surface-card border border-border-custom transition-colors duration-500 hover:border-foreground"
+          className="group block p-8 md:p-14 rounded-none bg-surface-card border border-border-custom transition-colors duration-500 hover:border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
         >
           <span className="text-xs font-mono font-bold uppercase tracking-widest text-foreground-secondary">
             Next Project

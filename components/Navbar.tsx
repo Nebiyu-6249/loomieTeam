@@ -21,6 +21,8 @@ export function Navbar() {
   const lastScrollY = useRef(0);
   const overlayRef = useRef<HTMLDivElement>(null);
   const menuLinksRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const keyHandlerRef = useRef<((event: KeyboardEvent) => void) | null>(null);
   const lenis = useLenis();
 
   useEffect(() => {
@@ -54,75 +56,146 @@ export function Navbar() {
   // than a value read from it; the cleanup still reads the live .current.
   useEffect(() => {
     const scroller = lenis;
+    const handler = keyHandlerRef;
     return () => {
       scroller?.current?.start();
+      if (handler.current) {
+        document.removeEventListener("keydown", handler.current);
+        handler.current = null;
+      }
     };
   }, [lenis]);
 
-  // GSAP Powerup & Down Overlay Animation
-  const toggleMenu = () => {
+  // GSAP Powerdown Overlay Animation
+  const closeMenu = () => {
     if (!overlayRef.current) return;
 
-    if (!menuOpen) {
-      setMenuOpen(true);
-      // Lenis ignores an overflow write on body, so the page would keep
-      // scrolling behind the overlay.
-      lenis?.current?.stop();
+    if (keyHandlerRef.current) {
+      document.removeEventListener("keydown", keyHandlerRef.current);
+      keyHandlerRef.current = null;
+    }
 
-      const tl = gsap.timeline();
+    const tl = gsap.timeline({
+      onComplete: () => {
+        setMenuOpen(false);
+        lenis?.current?.start();
+        if (overlayRef.current) {
+          overlayRef.current.style.display = "none";
+        }
+        // Focus goes back where it came from.
+        triggerRef.current?.focus();
+      },
+    });
 
-      // Curtain Powerup Down Animation
-      tl.to(overlayRef.current, {
-        display: "flex",
-        clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)",
-        duration: 0.75,
-        ease: "power4.inOut",
+    // Slide out links
+    if (menuLinksRef.current) {
+      tl.to(menuLinksRef.current.children, {
+        y: -50,
+        opacity: 0,
+        duration: 0.3,
+        stagger: 0.04,
+        ease: "power2.in",
       });
+    }
 
-      // Stagger Kinetic Menu Links Slide Up
-      if (menuLinksRef.current) {
-        tl.fromTo(
-          menuLinksRef.current.children,
-          { y: 90, opacity: 0, rotateX: -35 },
-          {
-            y: 0,
-            opacity: 1,
-            rotateX: 0,
-            duration: 0.8,
-            stagger: 0.08,
-            ease: "power3.out",
-          },
-          "-=0.4"
-        );
+    // Curtain Powerdown Up Animation
+    tl.to(overlayRef.current, {
+      clipPath: "polygon(0 0, 100% 0, 100% 0, 0 0)",
+      duration: 0.65,
+      ease: "power4.inOut",
+    });
+  };
+
+  // Escape closes the overlay and Tab is trapped inside it while open.
+  // The listener's lifetime is tied to open/close rather than an effect, so
+  // it needs no dependency on closeMenu, which is redefined every render.
+  const trapFocus = () => {
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+
+    const focusables = () =>
+      Array.from(
+        overlay.querySelectorAll<HTMLElement>("a[href], button:not([disabled])")
+      );
+
+    focusables()[0]?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeMenu();
+        return;
       }
-    } else {
-      const tl = gsap.timeline({
-        onComplete: () => {
-          setMenuOpen(false);
-          lenis?.current?.start();
-          if (overlayRef.current) {
-            overlayRef.current.style.display = "none";
-          }
+
+      if (event.key !== "Tab") return;
+
+      const items = focusables();
+      if (items.length === 0) return;
+
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey && (active === first || !overlay.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    keyHandlerRef.current = handleKeyDown;
+    document.addEventListener("keydown", handleKeyDown);
+  };
+
+  // GSAP Powerup Overlay Animation
+  const openMenu = () => {
+    if (!overlayRef.current) return;
+
+    setMenuOpen(true);
+    // Lenis ignores an overflow write on body, so the page would keep
+    // scrolling behind the overlay.
+    lenis?.current?.stop();
+
+    // GSAP sets this too, but doing it up front means the overlay is
+    // focusable now rather than a frame later.
+    overlayRef.current.style.display = "flex";
+    trapFocus();
+
+    const tl = gsap.timeline();
+
+    // Curtain Powerup Down Animation
+    tl.to(overlayRef.current, {
+      display: "flex",
+      clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)",
+      duration: 0.75,
+      ease: "power4.inOut",
+    });
+
+    // Stagger Kinetic Menu Links Slide Up
+    if (menuLinksRef.current) {
+      tl.fromTo(
+        menuLinksRef.current.children,
+        { y: 90, opacity: 0, rotateX: -35 },
+        {
+          y: 0,
+          opacity: 1,
+          rotateX: 0,
+          duration: 0.8,
+          stagger: 0.08,
+          ease: "power3.out",
         },
-      });
+        "-=0.4"
+      );
+    }
+  };
 
-      // Slide out links
-      if (menuLinksRef.current) {
-        tl.to(menuLinksRef.current.children, {
-          y: -50,
-          opacity: 0,
-          duration: 0.3,
-          stagger: 0.04,
-          ease: "power2.in",
-        });
-      }
-
-      // Curtain Powerdown Up Animation
-      tl.to(overlayRef.current, {
-        clipPath: "polygon(0 0, 100% 0, 100% 0, 0 0)",
-        duration: 0.65,
-        ease: "power4.inOut",
-      });
+  const toggleMenu = () => {
+    if (menuOpen) {
+      closeMenu();
+    } else {
+      openMenu();
     }
   };
 
@@ -139,7 +212,7 @@ export function Navbar() {
           {/* Constant Brand Logo Icon */}
           <Link
             href="/"
-            className="group flex items-center transition-transform duration-300 hover:scale-110 select-none"
+            className="group flex items-center transition-transform duration-300 hover:scale-110 select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
             aria-label="LOOMIE Home"
           >
             <LoomieEyes className="w-14 h-7" />
@@ -157,7 +230,7 @@ export function Navbar() {
               <Link
                 key={item.label}
                 href={item.href}
-                className="text-foreground font-medium tracking-normal opacity-90 transition-all duration-300 hover:opacity-100 hover:scale-105 relative group py-1"
+                className="text-foreground font-medium tracking-normal opacity-90 transition-all duration-300 hover:opacity-100 hover:scale-105 relative group py-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
               >
                 <span>{item.label}</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-foreground transition-all duration-300 group-hover:w-full" />
@@ -169,8 +242,11 @@ export function Navbar() {
           <div className="flex items-center gap-4">
             {/* GSAP Fullscreen Menu Trigger Button: Hidden on desktop when header text links are visible, shown on mobile or on scroll down */}
             <button
+              ref={triggerRef}
               onClick={toggleMenu}
-              className={`p-3.5 rounded-none bg-surface-card border border-border-custom text-foreground transition-all duration-500 hover:scale-105 hover:border-foreground items-center gap-2.5 shadow-sm group ${
+              aria-expanded={menuOpen}
+              aria-controls="site-menu"
+              className={`p-3.5 rounded-none bg-surface-card border border-border-custom text-foreground transition-all duration-500 hover:scale-105 hover:border-foreground items-center gap-2.5 shadow-sm group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground ${
                 showMenuLinks ? "flex md:hidden" : "flex"
               }`}
               aria-label="Toggle Fullscreen Menu"
@@ -184,7 +260,7 @@ export function Navbar() {
             {/* "Lets Talk" Button: Hides smoothly on scroll down */}
             <Link
               href="/contact"
-              className={`px-7 py-3 rounded-none bg-foreground text-background font-medium text-base transition-all duration-500 hover:bg-surface-card hover:text-foreground items-center gap-3 shadow-md border border-foreground transform ${
+              className={`px-7 py-3 rounded-none bg-foreground text-background font-medium text-base transition-all duration-500 hover:bg-surface-card hover:text-foreground items-center gap-3 shadow-md border border-foreground transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground ${
                 showMenuLinks
                   ? "opacity-100 translate-y-0 pointer-events-auto flex"
                   : "opacity-0 -translate-y-4 pointer-events-none hidden"
@@ -200,6 +276,10 @@ export function Navbar() {
       {/* GSAP Fullscreen Powerup & Down Curtain Overlay Menu */}
       <div
         ref={overlayRef}
+        id="site-menu"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Site navigation"
         className="fixed inset-0 z-[99999] bg-background text-foreground hidden flex-col justify-between p-8 md:p-16 overflow-hidden select-none border-b border-foreground"
         style={{
           clipPath: "polygon(0 0, 100% 0, 100% 0, 0 0)",
@@ -217,7 +297,7 @@ export function Navbar() {
 
           <button
             onClick={toggleMenu}
-            className="p-4 rounded-none bg-foreground text-background font-bold text-sm transition-all duration-300 hover:scale-110 flex items-center gap-2"
+            className="p-4 rounded-none bg-foreground text-background font-bold text-sm transition-all duration-300 hover:scale-110 flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
           >
             <span>Close</span>
             <X className="w-5 h-5" />
@@ -236,7 +316,7 @@ export function Navbar() {
                 key={item.label}
                 href={item.href}
                 onClick={toggleMenu}
-                className="group flex items-center gap-6 text-4xl sm:text-6xl md:text-7xl lg:text-8xl tracking-tight text-foreground-secondary hover:text-foreground transition-all duration-500 hover:translate-x-4"
+                className="group flex items-center gap-6 text-4xl sm:text-6xl md:text-7xl lg:text-8xl tracking-tight text-foreground-secondary hover:text-foreground transition-all duration-500 hover:translate-x-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
               >
                 <span className="font-mono text-base md:text-xl font-bold opacity-40 group-hover:opacity-100 text-foreground transition-opacity">
                   ({item.number})
@@ -255,13 +335,13 @@ export function Navbar() {
             <span>LOOMIE STUDIO 2026</span> • <span>TOKYO / LONDON / NYC</span>
           </div>
           <div className="flex items-center gap-8">
-            <a href="https://twitter.com" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
+            <a href="https://twitter.com" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
               X / Twitter ↗
             </a>
-            <a href="https://instagram.com" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
+            <a href="https://instagram.com" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
               Instagram ↗
             </a>
-            <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
+            <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
               LinkedIn ↗
             </a>
           </div>

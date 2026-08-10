@@ -60,6 +60,12 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.variable} font-sans antialiased bg-background text-foreground`}>
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[999999] focus:px-4 focus:py-2 focus:bg-foreground focus:text-background focus:font-mono focus:text-sm"
+        >
+          Skip to content
+        </a>
         <LoadingScreen />
         <ThemeProvider>
           <LenisScrollProvider>

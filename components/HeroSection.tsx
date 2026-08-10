@@ -214,7 +214,7 @@ export function HeroSection() {
   return (
     <section
       ref={containerRef}
-      className="pt-36 pb-24 md:pt-44 md:pb-36 px-6 md:px-12 max-w-[1700px] mx-auto overflow-hidden select-none"
+      className="pt-36 pb-24 md:pt-44 md:pb-36 px-6 md:px-12 max-w-[1700px] mx-auto overflow-hidden"
     >
       {/* Studio Badge */}
       <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-none bg-foreground/10 border border-foreground/20 text-foreground text-xs font-mono font-bold uppercase tracking-wider mb-8">
@@ -225,14 +225,18 @@ export function HeroSection() {
       {/* Headline & Subtitle Block */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end mb-16 md:mb-20">
         <div className="lg:col-span-7">
+          {/* SplitType shatters this into per-character spans, which some
+              screen readers announce letter by letter. The label carries the
+              real text and the split spans are hidden from the tree. */}
           <h1
             ref={headlineRef}
+            aria-label="Design that connects"
             className="text-5xl sm:text-7xl md:text-8xl lg:text-[6.8rem] font-extrabold tracking-tight leading-[0.92] text-foreground font-sans uppercase max-w-3xl"
             style={{ perspective: "1000px", willChange: "transform, opacity" }}
           >
-            <span>Design</span>{" "}
-            <span>that</span>{" "}
-            <span className="text-foreground border-b-4 border-foreground pb-1">connects</span>
+            <span aria-hidden="true">Design</span>{" "}
+            <span aria-hidden="true">that</span>{" "}
+            <span aria-hidden="true" className="text-foreground border-b-4 border-foreground pb-1">connects</span>
           </h1>
         </div>
 
@@ -264,7 +268,7 @@ export function HeroSection() {
       <div ref={gridRef} className="grid grid-cols-12 gap-8 md:gap-10">
         {filteredCards.map((card, index) => {
           const cardClassName = `${card.span} group relative rounded-none overflow-hidden bg-surface-card border border-border-custom shadow-2xl transition-all duration-500 hover:border-foreground${
-            card.href ? " cursor-pointer" : ""
+            card.href ? " cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground" : ""
           }`;
 
           const cardBody = (
