@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f4f4f7;
+  --surface: #ffffff;
+  --surface-card: #eaeae9;
+  --foreground: #08080a;
+  --foreground-secondary: #5e5e6e;
+  --accent: #08080a;
+  --accent-glow: rgba(8, 8, 10, 0.1);
+  --border-color: rgba(8, 8, 10, 0.12);
+  --glass-bg: rgba(244, 244, 247, 0.88);
+  --glass-border: rgba(8, 8, 10, 0.12);
+}
+
+.dark {
+  --background: #050507;
+  --surface: #0b0b0e;
+  --surface-card: #111116;
+  --foreground: #ffffff;
+  --foreground-secondary: #8a8a9a;
+  --accent: #ffffff;
+  --accent-glow: rgba(255, 255, 255, 0.15);
+  --border-color: rgba(255, 255, 255, 0.12);
+  --glass-bg: rgba(5, 5, 7, 0.88);
+  --glass-border: rgba(255, 255, 255, 0.12);
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-inter), monospace;
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-card: var(--surface-card);
+  --color-foreground: var(--foreground);
+  --color-foreground-secondary: var(--foreground-secondary);
+  --color-accent: var(--accent);
+  --color-accent-glow: var(--accent-glow);
+  --color-border-custom: var(--border-color);
+  --color-glass-bg: var(--glass-bg);
+  --color-glass-border: var(--glass-border);
+}
+
+html, body {
+  background-color: var(--background);
+  color: var(--foreground);
+  transition: background-color 0.35s ease, color 0.35s ease;
+  overflow-x: hidden;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  cursor: auto;
+}
+
+/* Faster Dynamic Marquee Smooth Animation (16s) */
+@keyframes marqueeSmooth {
+  0% {
+    transform: translate3d(0%, 0, 0);
+  }
+  100% {
+    transform: translate3d(-33.333%, 0, 0);
+  }
+}
+
+.animate-marquee-smooth {
+  display: flex;
+  width: max-content;
+  animation: marqueeSmooth 16s linear infinite;
+  will-change: transform;
+}
+
+/* Subtle Noise Background Overlay */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.025'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 99990;
+}
+
+/* Lenis Scroll Styles */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* View Transitions Clip-Path */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
+.dark::view-transition-old(root) {
+  z-index: 9999;
+}
+
+.dark::view-transition-new(root) {
+  z-index: 1;
+}
+
+/* SplitType kinetic characters & word spacing */
+.line {
+  overflow: hidden;
+}
+
+.word {
+  display: inline-block;
+  overflow: hidden;
+  margin-right: 0.32em;
+  vertical-align: bottom;
+}
+
+.word:last-child {
+  margin-right: 0;
+}
+
+.char {
+  display: inline-block;
+  will-change: transform, opacity;
+  transform-style: preserve-3d;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--foreground-secondary);
+  border-radius: 0px;
+}
