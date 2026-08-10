@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React from "react";
+import { LoomieEyes } from "./LoomieEyes";
 
 const SPECS = [
   { label: "Construction", value: "Pill + two apertures" },
@@ -10,59 +11,6 @@ const SPECS = [
 ];
 
 export function IdentitySection() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const leftPupilRef = useRef<SVGCircleElement>(null);
-  const rightPupilRef = useRef<SVGCircleElement>(null);
-
-  useEffect(() => {
-    const target = { x: 0, y: 0 };
-    const current = { x: 0, y: 0 };
-    const MAX_OFFSET = 18;
-
-    const handleMouseMove = (event: MouseEvent) => {
-      const container = containerRef.current;
-      if (!container) return;
-
-      const rect = container.getBoundingClientRect();
-      const centreX = rect.left + rect.width / 2;
-      const centreY = rect.top + rect.height / 2;
-
-      const dx = event.clientX - centreX;
-      const dy = event.clientY - centreY;
-      const distance = Math.hypot(dx, dy) || 1;
-      const clamped = Math.min(distance, MAX_OFFSET * 12) / (MAX_OFFSET * 12);
-
-      target.x = (dx / distance) * MAX_OFFSET * clamped;
-      target.y = (dy / distance) * MAX_OFFSET * clamped;
-    };
-
-    let frame = 0;
-
-    const render = () => {
-      current.x += (target.x - current.x) * 0.12;
-      current.y += (target.y - current.y) * 0.12;
-
-      const transform = `translate(${current.x.toFixed(2)}, ${current.y.toFixed(2)})`;
-
-      if (leftPupilRef.current) {
-        leftPupilRef.current.setAttribute("transform", transform);
-      }
-      if (rightPupilRef.current) {
-        rightPupilRef.current.setAttribute("transform", transform);
-      }
-
-      frame = requestAnimationFrame(render);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    frame = requestAnimationFrame(render);
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      cancelAnimationFrame(frame);
-    };
-  }, []);
-
   return (
     <section
       id="identity"
@@ -78,39 +26,11 @@ export function IdentitySection() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 mt-16 items-center">
         {/* Blueprint */}
-        <div
-          ref={containerRef}
-          className="lg:col-span-7 p-10 md:p-16 rounded-none bg-surface-card border border-border-custom flex items-center justify-center"
-        >
-          <svg
-            viewBox="0 0 360 185"
+        <div className="lg:col-span-7 p-10 md:p-16 rounded-none bg-surface-card border border-border-custom flex items-center justify-center">
+          <LoomieEyes
             className="w-full max-w-[340px] h-auto"
-            role="img"
-            aria-label="The LOOMIE mark: a pill containing two apertures that follow the cursor"
-          >
-            <rect
-              x="10"
-              y="8"
-              width="340"
-              height="170"
-              rx="85"
-              className="fill-foreground"
-            />
-            <circle
-              ref={leftPupilRef}
-              cx="117"
-              cy="93"
-              r="45"
-              className="fill-background"
-            />
-            <circle
-              ref={rightPupilRef}
-              cx="243"
-              cy="93"
-              r="45"
-              className="fill-background"
-            />
-          </svg>
+            label="The LOOMIE mark: a pill containing two apertures that follow the cursor"
+          />
         </div>
 
         {/* Specs */}

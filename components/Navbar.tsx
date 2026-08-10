@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { gsap } from "gsap";
-import { LoomieLogoMark } from "./LoomieLogoMark";
+import { LoomieEyes } from "./LoomieEyes";
 import { useLenis } from "./LenisScrollProvider";
 
 const NAV_ITEMS = [
@@ -142,7 +142,7 @@ export function Navbar() {
             className="group flex items-center transition-transform duration-300 hover:scale-110 select-none"
             aria-label="LOOMIE Home"
           >
-            <LoomieLogoMark className="w-14 h-7" />
+            <LoomieEyes className="w-14 h-7" />
           </Link>
 
           {/* Middle Menu Links (Disappears on scroll DOWN, re-appears on scroll UP) */}
@@ -209,7 +209,7 @@ export function Navbar() {
         {/* Overlay Header */}
         <div className="flex items-center justify-between max-w-[1700px] w-full mx-auto pb-8 border-b border-border-custom">
           <div className="flex items-center gap-3">
-            <LoomieLogoMark className="w-14 h-7" />
+            <LoomieEyes className="w-14 h-7" />
             <span className="font-mono text-xs font-bold tracking-widest text-foreground-secondary uppercase">
               STUDIO NAVIGATION ENGINE
             </span>
