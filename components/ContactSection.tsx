@@ -1,7 +1,53 @@
 "use client";
 
-import React from "react";
+import React, { useSyncExternalStore } from "react";
 import { Mail, ArrowUpRight } from "lucide-react";
+
+/**
+ * Dubai does not observe daylight saving, so GST is UTC+4 all year.
+ *
+ * This reads through useSyncExternalStore rather than useState + useEffect
+ * because seeding state synchronously inside an effect trips
+ * react-hooks/set-state-in-effect, and waiting a full second for the first
+ * tick would leave the placeholder on screen after mount.
+ */
+const subscribeToClock = (onStoreChange: () => void) => {
+  const interval = window.setInterval(onStoreChange, 1000);
+  return () => window.clearInterval(interval);
+};
+
+const getDubaiTime = () => {
+  const now = new Date();
+
+  const dubaiTime = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Dubai",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(now);
+
+  return dubaiTime;
+};
+
+const getClockPlaceholder = () => "--:--";
+
+function DubaiClock() {
+  const time = useSyncExternalStore(
+    subscribeToClock,
+    getDubaiTime,
+    getClockPlaceholder
+  );
+
+  return (
+    <div className="flex items-baseline gap-4">
+      <span className="font-mono text-5xl md:text-6xl font-bold text-foreground tabular-nums tracking-tight">
+        {time}
+      </span>
+      <span className="font-mono text-xs font-bold uppercase tracking-widest text-foreground-secondary">
+        GST (UTC+4)
+      </span>
+    </div>
+  );
+}
 
 /**
  * PLACEHOLDER COPY — the FAQ answers below are written to be structural
@@ -64,8 +110,11 @@ export function ContactSection() {
 
         <div className="lg:col-span-5 p-8 md:p-10 rounded-none bg-surface-card border border-border-custom flex flex-col justify-between gap-6">
           <span className="text-xs font-mono font-bold uppercase tracking-widest text-foreground-secondary">
-            Studio Time
+            Studio Time / Dubai
           </span>
+
+          <DubaiClock />
+
           <p className="text-sm text-foreground-secondary leading-relaxed">
             Replies land during Dubai working hours. Anything sent overnight is
             answered the next morning.
