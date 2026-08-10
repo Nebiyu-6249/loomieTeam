@@ -265,7 +265,7 @@ export function HeroSection() {
 
       {/* Bento Grid Showcase */}
       <div ref={gridRef} className="grid grid-cols-12 gap-8 md:gap-10">
-        {filteredCards.map((card) => {
+        {filteredCards.map((card, index) => {
           const cardClassName = `${card.span} group relative rounded-none overflow-hidden bg-surface-card border border-border-custom shadow-2xl transition-all duration-500 hover:border-foreground${
             card.href ? " cursor-pointer" : ""
           }`;
@@ -277,7 +277,8 @@ export function HeroSection() {
                 src={card.image}
                 alt={card.title}
                 fill
-                priority
+                priority={index === 0}
+                loading={index === 0 ? undefined : "lazy"}
                 quality={80}
                 sizes="(max-width: 1024px) 100vw, 60vw"
                 className="object-cover rounded-none transition-all duration-700 ease-out group-hover:scale-105 group-hover:contrast-[1.08] group-hover:brightness-[1.05]"
