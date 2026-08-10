@@ -5,6 +5,7 @@ import { ExplodedView } from "@/components/ExplodedView";
 import { ServicesSection } from "@/components/ServicesSection";
 import { PartnersMarquee } from "@/components/PartnersMarquee";
 import { PortfolioGrid } from "@/components/PortfolioGrid";
+import { TickerSentence } from "@/components/TickerSentence";
 import { Footer } from "@/components/Footer";
 
 export default function Home() {
@@ -17,6 +18,7 @@ export default function Home() {
       <ServicesSection />
       <PartnersMarquee />
       <PortfolioGrid />
+      <TickerSentence />
       <Footer />
     </main>
   );
