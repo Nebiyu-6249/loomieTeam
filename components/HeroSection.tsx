@@ -206,8 +206,8 @@ export function HeroSection() {
               text="Design that connects"
               trigger="mount"
               waitFor={whenLoaderFinished}
-              lastWordClassName="text-foreground border-b-4 border-foreground pb-1"
-              className="text-5xl sm:text-7xl md:text-8xl lg:text-[6.8rem] font-extrabold tracking-tight leading-[0.92] text-foreground font-sans uppercase max-w-3xl"
+              lastWordClassName="text-foreground border-b-2 border-foreground/70 pb-1"
+              className="font-display font-normal text-6xl sm:text-8xl md:text-9xl lg:text-[8.5rem] tracking-[-0.03em] leading-[0.86] text-foreground max-w-4xl"
             />
           </div>
         </div>

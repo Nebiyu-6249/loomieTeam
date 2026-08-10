@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import {
+  Instrument_Serif,
+  Instrument_Sans,
+  Geist_Mono,
+} from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { LenisScrollProvider } from "@/components/LenisScrollProvider";
@@ -7,9 +11,34 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { PageTransition } from "@/components/PageTransition";
 
-const inter = Inter({
+/**
+ * Three faces, three jobs.
+ *
+ * Display carries the snow-and-river warmth; body is the companion sans to
+ * that serif, from the same foundry, so the two share proportions; mono is
+ * for eyebrows, numbering, timestamps and coordinates.
+ *
+ * Instrument Sans stands in for Switzer/General Sans: Fontshare is blocked by
+ * this environment's network policy, so the woff2 files cannot be fetched.
+ * Swapping it for a local face later is a change to this block alone.
+ */
+const displaySerif = Instrument_Serif({
   subsets: ["latin"],
-  variable: "--font-inter",
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-display-serif",
+  display: "swap",
+});
+
+const bodySans = Instrument_Sans({
+  subsets: ["latin"],
+  variable: "--font-body-sans",
+  display: "swap",
+});
+
+const technicalMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-technical-mono",
   display: "swap",
 });
 
@@ -61,7 +90,9 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.variable} font-sans antialiased bg-background text-foreground`}>
+      <body
+        className={`${displaySerif.variable} ${bodySans.variable} ${technicalMono.variable} font-sans antialiased bg-background text-foreground`}
+      >
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[999999] focus:px-4 focus:py-2 focus:bg-foreground focus:text-background focus:font-mono focus:text-sm"

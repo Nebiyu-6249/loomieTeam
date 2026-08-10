@@ -85,7 +85,7 @@ export function ContactSection() {
         01 / Contact
       </span>
 
-      <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter uppercase text-foreground leading-[0.95] max-w-4xl">
+      <h1 className="font-display font-normal text-5xl sm:text-7xl md:text-8xl tracking-[-0.025em] text-foreground leading-[0.9] max-w-4xl">
         Start a project
       </h1>
 
