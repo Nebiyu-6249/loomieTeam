@@ -6,7 +6,8 @@ import Link from "next/link";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import SplitType from "split-type";
-import { ArrowDown, Plus, ChevronDown, ArrowUpRight } from "lucide-react";
+import { ArrowDown, ArrowUpRight } from "lucide-react";
+import { FilterBar, type FilterCategory } from "./FilterBar";
 
 interface BentoCard {
   id: string;
@@ -69,6 +70,15 @@ const BENTO_GRID_ITEMS: BentoCard[] = [
     tag: "HARDWARE UI",
     href: "/work/sat-cybernetic-hud",
   },
+];
+
+const CATEGORIES: FilterCategory[] = [
+  { id: "ALL", label: "ALL" },
+  { id: "ECOMMERCE", label: "ECOMMERCE" },
+  { id: "FOOD", label: "FOOD & BEVERAGE" },
+  { id: "ENTERTAINMENT", label: "ENTERTAINMENT" },
+  { id: "INDUSTRIAL", label: "MANUFACTURING & INDUSTRIAL" },
+  { id: "TECH", label: "TECH" },
 ];
 
 export function HeroSection() {
@@ -184,13 +194,9 @@ export function HeroSection() {
   const filteredCards =
     activeFilter === "ALL"
       ? BENTO_GRID_ITEMS
-      : BENTO_GRID_ITEMS.filter((item) => {
-          if (activeFilter === "FOOD") return item.categoryCode === "food";
-          if (activeFilter === "TECH") return item.categoryCode === "tech";
-          if (activeFilter === "ENTERTAINMENT") return item.categoryCode === "entertainment";
-          if (activeFilter === "INDUSTRIAL") return item.categoryCode === "industrial";
-          return true;
-        });
+      : BENTO_GRID_ITEMS.filter(
+          (item) => item.categoryCode === activeFilter.toLowerCase()
+        );
 
   return (
     <section
@@ -232,35 +238,13 @@ export function HeroSection() {
       </div>
 
       {/* Pill Filter Bar */}
-      <div ref={pillBarRef} className="flex flex-wrap items-center gap-3.5 mb-16 select-none">
-        {[
-          { id: "ALL", label: "ALL", count: 24 },
-          { id: "ECOMMERCE", label: "ECOMMERCE", count: 7 },
-          { id: "FOOD", label: "FOOD & BEVERAGE", count: 2 },
-          { id: "ENTERTAINMENT", label: "ENTERTAINMENT", count: 3 },
-          { id: "INDUSTRIAL", label: "MANUFACTURING & INDUSTRIAL", count: 2 },
-          { id: "TECH", label: "TECH", count: 4 },
-        ].map((pill) => (
-          <button
-            key={pill.id}
-            onClick={() => setActiveFilter(pill.id)}
-            className={`px-6 py-3.5 rounded-none text-xs sm:text-sm font-mono font-bold tracking-wider uppercase transition-all duration-300 flex items-center gap-2.5 ${
-              activeFilter === pill.id
-                ? "bg-foreground text-background shadow-xl scale-105 border border-foreground"
-                : "bg-surface-card border border-border-custom text-foreground-secondary hover:text-foreground hover:border-foreground"
-            }`}
-          >
-            <span>
-              {pill.label} <sup className="text-[11px] opacity-70">({pill.count})</sup>
-            </span>
-            <Plus className="w-4 h-4" />
-          </button>
-        ))}
-
-        <button className="px-6 py-3.5 rounded-none bg-surface-card border border-border-custom text-foreground-secondary hover:text-foreground text-xs sm:text-sm font-mono font-bold tracking-wider uppercase flex items-center gap-2.5">
-          <span>SEE MORE</span>
-          <ChevronDown className="w-4 h-4" />
-        </button>
+      <div ref={pillBarRef}>
+        <FilterBar
+          items={BENTO_GRID_ITEMS}
+          categories={CATEGORIES}
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+        />
       </div>
 
       {/* Bento Grid Showcase */}
@@ -329,6 +313,12 @@ export function HeroSection() {
           );
         })}
       </div>
+
+      {filteredCards.length === 0 && (
+        <p className="font-mono text-sm text-foreground-secondary uppercase tracking-widest">
+          No work in this category yet.
+        </p>
+      )}
     </section>
   );
 }
