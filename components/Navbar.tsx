@@ -1,16 +1,16 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { gsap } from "gsap";
 import { LoomieLogoMark } from "./LoomieLogoMark";
 
 const NAV_ITEMS = [
-  { label: "Story", href: "#story", number: "01" },
-  { label: "Values", href: "#values", number: "02" },
-  { label: "Identity", href: "#identity", number: "03" },
-  { label: "Who We Build For", href: "#who-we-build-for", number: "04" },
-  { label: "Connect", href: "#contact", number: "05" },
+  { label: "Work", href: "/work", number: "01" },
+  { label: "Services", href: "/services", number: "02" },
+  { label: "Studio", href: "/studio", number: "03" },
+  { label: "Clients", href: "/clients", number: "04" },
 ];
 
 export function Navbar() {
@@ -123,13 +123,13 @@ export function Navbar() {
       >
         <div className="max-w-[1700px] mx-auto px-6 md:px-12 flex items-center justify-between">
           {/* Constant Brand Logo Icon */}
-          <a
-            href="#"
+          <Link
+            href="/"
             className="group flex items-center transition-transform duration-300 hover:scale-110 select-none"
             aria-label="LOOMIE Home"
           >
             <LoomieLogoMark className="w-14 h-7" />
-          </a>
+          </Link>
 
           {/* Middle Menu Links (Disappears on scroll DOWN, re-appears on scroll UP) */}
           <nav
@@ -140,14 +140,14 @@ export function Navbar() {
             }`}
           >
             {NAV_ITEMS.map((item) => (
-              <a
+              <Link
                 key={item.label}
                 href={item.href}
                 className="text-foreground font-medium tracking-normal opacity-90 transition-all duration-300 hover:opacity-100 hover:scale-105 relative group py-1"
               >
                 <span>{item.label}</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-foreground transition-all duration-300 group-hover:w-full" />
-              </a>
+              </Link>
             ))}
           </nav>
 
@@ -168,17 +168,17 @@ export function Navbar() {
             </button>
 
             {/* "Lets Talk" Button: Hides smoothly on scroll down */}
-            <a
-              href="#contact"
+            <Link
+              href="/contact"
               className={`px-7 py-3 rounded-none bg-foreground text-background font-medium text-base transition-all duration-500 hover:bg-surface-card hover:text-foreground items-center gap-3 shadow-md border border-foreground transform ${
                 showMenuLinks
                   ? "opacity-100 translate-y-0 pointer-events-auto flex"
                   : "opacity-0 -translate-y-4 pointer-events-none hidden"
               }`}
             >
-              <span>Lets Talk</span>
+              <span>Let&apos;s Talk</span>
               <ArrowRight className="w-4.5 h-4.5" />
-            </a>
+            </Link>
           </div>
         </div>
       </header>
@@ -218,7 +218,7 @@ export function Navbar() {
             style={{ perspective: "1000px" }}
           >
             {NAV_ITEMS.map((item) => (
-              <a
+              <Link
                 key={item.label}
                 href={item.href}
                 onClick={toggleMenu}
@@ -230,7 +230,7 @@ export function Navbar() {
                 <span className="group-hover:tracking-wider transition-all duration-500">
                   {item.label}
                 </span>
-              </a>
+              </Link>
             ))}
           </div>
         </div>
