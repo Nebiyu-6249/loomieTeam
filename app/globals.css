@@ -144,6 +144,13 @@ html.lenis, html.lenis body {
   transform-style: preserve-3d;
 }
 
+/* Loading screen: hidden before first paint on repeat visits within a
+   session and under reduced motion, so it never flashes. The attribute is
+   set by the inline script in <head>; LoadingScreen then unmounts it. */
+[data-loomie-loaded="1"] .loading-screen {
+  display: none;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 5px;

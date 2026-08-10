@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { LenisScrollProvider } from "@/components/LenisScrollProvider";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -52,8 +53,14 @@ export default function RootLayout({
             __html: `(function(){try{var t=localStorage.getItem('loomie-theme');if(t==='light'){document.documentElement.classList.remove('dark')}}catch(e){}})();`,
           }}
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{if(sessionStorage.getItem('loomie-loaded')==='1'||window.matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.setAttribute('data-loomie-loaded','1')}}catch(e){}})();`,
+          }}
+        />
       </head>
       <body className={`${inter.variable} font-sans antialiased bg-background text-foreground`}>
+        <LoadingScreen />
         <ThemeProvider>
           <LenisScrollProvider>
             <ScrollToTop />
