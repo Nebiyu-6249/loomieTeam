@@ -42,7 +42,7 @@ export function FeaturedWork({ projects }: { projects: FeaturedProject[] }) {
           <BlurText
             as="h2"
             text="Featured work"
-            className="block text-4xl md:text-6xl font-black tracking-tighter uppercase text-foreground"
+            className="block font-display font-normal text-4xl md:text-6xl tracking-[-0.02em] text-foreground"
           />
 
           <Link

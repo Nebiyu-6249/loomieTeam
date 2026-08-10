@@ -168,7 +168,7 @@ export function TickerSentence() {
         data-ticker-section=""
         className="py-24 px-6 md:px-12 max-w-[1700px] mx-auto border-t border-border-custom"
       >
-        <p className="font-serif text-2xl md:text-4xl leading-snug text-foreground max-w-5xl">
+        <p className="font-display text-3xl md:text-5xl leading-snug text-foreground max-w-5xl">
           {SENTENCE.map((item, index) =>
             item.kind === "text" ? (
               <span key={index}>{item.value} </span>
@@ -205,7 +205,7 @@ export function TickerSentence() {
               key={index}
               aria-hidden="true"
               style={{ marginRight: item.gap }}
-              className="inline-flex items-center font-serif text-5xl lg:text-7xl xl:text-8xl leading-none text-foreground"
+              className="inline-flex items-center font-display text-6xl lg:text-8xl xl:text-9xl leading-none text-foreground"
             >
               {item.kind === "text" ? (
                 item.value
@@ -227,7 +227,7 @@ export function TickerSentence() {
                 <span
                   key={`${copy}-${index}`}
                   style={{ marginRight: item.gap }}
-                  className="inline-flex items-center font-serif text-2xl leading-none text-foreground whitespace-nowrap"
+                  className="inline-flex items-center font-display text-3xl leading-none text-foreground whitespace-nowrap"
                 >
                   {item.kind === "text" ? (
                     item.value

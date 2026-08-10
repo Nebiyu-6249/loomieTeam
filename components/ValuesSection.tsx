@@ -105,7 +105,7 @@ export function ValuesSection() {
       <BlurText
         as="h2"
         text="What we hold to"
-        className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tighter uppercase text-foreground leading-[0.95] max-w-4xl"
+        className="font-display font-normal text-4xl sm:text-6xl md:text-7xl tracking-[-0.02em] text-foreground leading-[0.95] max-w-4xl"
       />
 
       <div

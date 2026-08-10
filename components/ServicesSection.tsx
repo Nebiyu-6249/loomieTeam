@@ -83,7 +83,7 @@ export function ServicesSection() {
       <BlurText
         as="h2"
         text="Services"
-        className="block text-4xl md:text-6xl font-black tracking-tighter uppercase text-foreground mb-16"
+        className="block font-mono text-2xl md:text-3xl font-medium uppercase tracking-[0.18em] text-foreground mb-16"
       />
 
       <div className="flex flex-col gap-6">

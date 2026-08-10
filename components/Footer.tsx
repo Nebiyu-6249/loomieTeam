@@ -60,7 +60,7 @@ export function Footer() {
             <span className="text-xs uppercase font-mono tracking-widest text-foreground font-bold">
               03 / GET IN TOUCH
             </span>
-            <h2 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight mt-4 max-w-3xl leading-[1.05]">
+            <h2 className="font-display font-normal text-4xl sm:text-6xl md:text-7xl tracking-[-0.02em] mt-4 max-w-3xl leading-[1.05]">
               LET&apos;S BUILD SOMETHING <span className="text-foreground border-b-4 border-foreground pb-1">EXTRAORDINARY</span>.
             </h2>
           </div>

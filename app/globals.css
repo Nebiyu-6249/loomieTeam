@@ -29,8 +29,12 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-inter), system-ui, sans-serif;
-  --font-mono: var(--font-inter), monospace;
+  /* Three faces. --font-mono previously pointed at Inter, which meant every
+     font-mono class in the codebase rendered with no effect at all. */
+  --font-display: var(--font-display-serif), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-body-sans), system-ui, sans-serif;
+  --font-mono: var(--font-technical-mono), ui-monospace, "SFMono-Regular",
+    monospace;
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-card: var(--surface-card);
@@ -52,7 +56,6 @@ html, body {
      ever engaging against the viewport. clip does the same horizontal
      clipping without creating a scrollport. */
   overflow-x: clip;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   cursor: auto;
 }
 
@@ -124,28 +127,6 @@ html.lenis, html.lenis body {
 
 .dark::view-transition-new(root) {
   z-index: 1;
-}
-
-/* SplitType kinetic characters & word spacing */
-.line {
-  overflow: hidden;
-}
-
-.word {
-  display: inline-block;
-  overflow: hidden;
-  margin-right: 0.32em;
-  vertical-align: bottom;
-}
-
-.word:last-child {
-  margin-right: 0;
-}
-
-.char {
-  display: inline-block;
-  will-change: transform, opacity;
-  transform-style: preserve-3d;
 }
 
 /* Loading screen: hidden before first paint on repeat visits within a
