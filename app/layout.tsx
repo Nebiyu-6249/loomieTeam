@@ -92,8 +92,10 @@ export default function RootLayout({
           }}
         />
       </head>
+      {/* No background utility on body: the ground colour lives on html so the
+          fixed WebGL layer behind the content is not painted over. */}
       <body
-        className={`${displaySerif.variable} ${bodySans.variable} ${technicalMono.variable} font-sans antialiased bg-background text-foreground`}
+        className={`${displaySerif.variable} ${bodySans.variable} ${technicalMono.variable} font-sans antialiased text-foreground`}
       >
         <a
           href="#main"

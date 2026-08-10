@@ -73,8 +73,18 @@
   --color-glass-border: var(--glass-border);
 }
 
-html, body {
+html {
+  /* Only html carries the ground colour. Its background propagates to the
+     canvas and paints beneath everything, which leaves room for the fixed
+     WebGL layer at -z-10 to be seen.
+
+     Putting the same colour on body would hide it: a block box background
+     paints in step 3 of the stacking order and negative z-index children paint
+     in step 2, so an opaque body covers the scene completely. */
   background-color: var(--background);
+}
+
+html, body {
   color: var(--foreground);
   /* No transition on background-color: ScrollTemperature writes it every
      frame, and a 0.35s ease would smear each write into the next. Colour is
