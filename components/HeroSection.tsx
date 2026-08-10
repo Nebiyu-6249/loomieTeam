@@ -9,6 +9,7 @@ import { ArrowDown, ArrowUpRight } from "lucide-react";
 import { FilterBar, type FilterCategory } from "./FilterBar";
 import { BlurText } from "./BlurText";
 import { whenLoaderFinished } from "./loaderSignal";
+import { SceneAnchor } from "./three/SceneAnchor";
 
 interface BentoCard {
   id: string;
@@ -216,6 +217,9 @@ export function HeroSection() {
           ref={subtitleRef}
           className="lg:col-span-5 flex flex-col justify-end space-y-6 lg:pl-10 text-foreground-secondary text-base sm:text-lg font-sans"
         >
+          {/* Reserves the space the canvas draws the ice lenses into, and
+              holds the frame lease while the hero is on screen. */}
+          <SceneAnchor id="hero-lenses" className="w-40 h-20 md:w-56 md:h-28" />
           <p className="leading-snug font-normal max-w-md">
             Where ideas turn into identities we craft experience that resonates
           </p>

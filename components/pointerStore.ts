@@ -43,21 +43,49 @@ const handlePointerMove = (event: PointerEvent) => {
   lastMoveAt = performance.now();
 };
 
-const tick = (time: number) => {
+let listenerHolders = 0;
+
+/** Refcounted, so the one listener outlives any single consumer. */
+const retainListener = () => {
+  if (listenerHolders === 0) {
+    state.fine = window.matchMedia("(pointer: fine)").matches;
+    window.addEventListener("pointermove", handlePointerMove, {
+      passive: true,
+    });
+  }
+
+  listenerHolders += 1;
+
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    listenerHolders -= 1;
+
+    if (listenerHolders === 0) {
+      window.removeEventListener("pointermove", handlePointerMove);
+    }
+  };
+};
+
+const refreshIdle = () => {
   state.idleFor = state.seen ? performance.now() - lastMoveAt : 0;
+};
+
+const tick = (time: number) => {
+  refreshIdle();
   subscribers.forEach((subscriber) => subscriber(time, state));
   frame = requestAnimationFrame(tick);
 };
+
+let releaseFrameListener: (() => void) | null = null;
 
 /** Returns an unsubscribe function. The loop stops when the last one leaves. */
 export function subscribeToPointerFrame(subscriber: FrameSubscriber) {
   subscribers.add(subscriber);
 
   if (!running) {
-    state.fine = window.matchMedia("(pointer: fine)").matches;
-    window.addEventListener("pointermove", handlePointerMove, {
-      passive: true,
-    });
+    releaseFrameListener = retainListener();
     frame = requestAnimationFrame(tick);
     running = true;
   }
@@ -66,9 +94,30 @@ export function subscribeToPointerFrame(subscriber: FrameSubscriber) {
     subscribers.delete(subscriber);
 
     if (subscribers.size === 0 && running) {
-      window.removeEventListener("pointermove", handlePointerMove);
+      releaseFrameListener?.();
+      releaseFrameListener = null;
       cancelAnimationFrame(frame);
       running = false;
     }
   };
+}
+
+/**
+ * For consumers that already have a frame loop of their own.
+ *
+ * The canvas renders on react-three-fiber's loop, and it cannot use the
+ * pointer react-three-fiber provides: the canvas sits behind the page with
+ * pointer-events none, so no pointer event ever reaches it and its own pointer
+ * stays at the origin forever. Keeping the listener here means the whole
+ * application still has exactly one.
+ *
+ * Returns a release function; pair it with readPointer.
+ */
+export function observePointer() {
+  return retainListener();
+}
+
+export function readPointer(): Readonly<PointerState> {
+  refreshIdle();
+  return state;
 }
