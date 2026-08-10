@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowUpRight, Mail, MapPin, Globe } from "lucide-react";
@@ -135,24 +136,24 @@ export function Footer() {
             </h4>
             <ul className="space-y-3 text-foreground-secondary">
               <li>
-                <a href="#grid" className="hover:text-foreground transition-colors">
+                <Link href="/work" className="hover:text-foreground transition-colors">
                   Work Showcase
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#architecture" className="hover:text-foreground transition-colors">
-                  Technical Architecture
-                </a>
+                <Link href="/services" className="hover:text-foreground transition-colors">
+                  Services
+                </Link>
               </li>
               <li>
-                <a href="#grid" className="hover:text-foreground transition-colors">
-                  Creative Archive
-                </a>
+                <Link href="/studio" className="hover:text-foreground transition-colors">
+                  Studio
+                </Link>
               </li>
               <li>
-                <a href="#contact" className="hover:text-foreground transition-colors">
+                <Link href="/contact" className="hover:text-foreground transition-colors">
                   Start a Project
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
