@@ -1,6 +1,7 @@
 import { Navbar } from "@/components/Navbar";
 import { HeroSection } from "@/components/HeroSection";
 import { Marquee } from "@/components/Marquee";
+import { ServicesSection } from "@/components/ServicesSection";
 import { PortfolioGrid } from "@/components/PortfolioGrid";
 import { Footer } from "@/components/Footer";
 
@@ -10,6 +11,7 @@ export default function Home() {
       <Navbar />
       <HeroSection />
       <Marquee />
+      <ServicesSection />
       <PortfolioGrid />
       <Footer />
     </main>
