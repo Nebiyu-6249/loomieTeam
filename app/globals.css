@@ -162,3 +162,12 @@ html.lenis, html.lenis body {
   background: var(--foreground-secondary);
   border-radius: 0px;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee-smooth {
+    animation: none;
+  }
+  html, body {
+    transition: none;
+  }
+}

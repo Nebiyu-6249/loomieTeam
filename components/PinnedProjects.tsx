@@ -194,7 +194,7 @@ export function PinnedProjects() {
                 <div>
                   <a
                     href="#contact"
-                    className="inline-flex items-center gap-3 px-8 py-4 rounded-none bg-foreground text-background font-bold text-sm uppercase tracking-wider transition-all duration-300 hover:bg-white hover:text-black hover:scale-105"
+                    className="inline-flex items-center gap-3 px-8 py-4 rounded-none bg-foreground text-background font-bold text-sm uppercase tracking-wider transition-all duration-300 hover:bg-white hover:text-black hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
                     data-cursor="hover"
                   >
                     <span>Inspect Case Study</span>

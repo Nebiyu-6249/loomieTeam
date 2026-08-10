@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function ClientsPage() {
   return (
-    <main className="relative min-h-screen bg-background text-foreground overflow-hidden">
+    <main id="main" className="relative min-h-screen bg-background text-foreground overflow-hidden">
       <Navbar />
 
       <header className="pt-36 md:pt-44 px-6 md:px-12 max-w-[1700px] mx-auto">

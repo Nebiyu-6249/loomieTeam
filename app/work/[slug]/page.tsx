@@ -133,7 +133,7 @@ export default async function CaseStudyPage({
   }
 
   return (
-    <main className="relative min-h-screen bg-background text-foreground overflow-hidden">
+    <main id="main" className="relative min-h-screen bg-background text-foreground overflow-hidden">
       <Navbar />
       <CaseStudyClient project={project} />
       <Footer />

@@ -100,7 +100,7 @@ export function ContactSection() {
         <div className="lg:col-span-7">
           <a
             href="mailto:hello@loomiestudio.com"
-            className="group h-full inline-flex w-full items-center gap-4 px-8 py-8 md:py-10 rounded-none bg-foreground text-background font-bold text-lg md:text-2xl border border-foreground transition-all duration-300 hover:bg-surface-card hover:text-foreground"
+            className="group h-full inline-flex w-full items-center gap-4 px-8 py-8 md:py-10 rounded-none bg-foreground text-background font-bold text-lg md:text-2xl border border-foreground transition-all duration-300 hover:bg-surface-card hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
           >
             <Mail className="w-6 h-6 shrink-0" />
             <span className="break-all">hello@loomiestudio.com</span>
@@ -138,7 +138,7 @@ export function ContactSection() {
               key={faq.question}
               className="group border-b border-border-custom"
             >
-              <summary className="flex items-center justify-between gap-6 py-7 md:py-8 cursor-pointer list-none text-lg md:text-2xl font-bold text-foreground transition-colors duration-300 hover:text-foreground-secondary">
+              <summary className="flex items-center justify-between gap-6 py-7 md:py-8 cursor-pointer list-none text-lg md:text-2xl font-bold text-foreground transition-colors duration-300 hover:text-foreground-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
                 <span>{faq.question}</span>
                 <span
                   aria-hidden="true"
