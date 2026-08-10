@@ -177,12 +177,6 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <a href="https://dribbble.com" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors flex items-center justify-between">
-                  <span>Dribbble</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </a>
-              </li>
-              <li>
                 <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors flex items-center justify-between">
                   <span>LinkedIn</span>
                   <ArrowUpRight className="w-3.5 h-3.5" />
