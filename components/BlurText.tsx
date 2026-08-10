@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useRef, useSyncExternalStore } from "react";
+import React, { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 /**
  * Per-character reveal: the one place in this codebase where filter is
@@ -21,28 +22,6 @@ const TO = { opacity: 1, y: 0, filter: "blur(0px)" } as const;
 const DEFAULT_DURATION = 0.8;
 const DEFAULT_STAGGER = 0.03;
 const EASE = "power3.out";
-
-const reducedMotionQuery = () =>
-  window.matchMedia("(prefers-reduced-motion: reduce)");
-
-const subscribeToReducedMotion = (onChange: () => void) => {
-  const query = reducedMotionQuery();
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-};
-
-const getReducedMotion = () => reducedMotionQuery().matches;
-
-/** The server cannot know, so it renders the animatable markup. */
-const getReducedMotionServer = () => false;
-
-function usePrefersReducedMotion() {
-  return useSyncExternalStore(
-    subscribeToReducedMotion,
-    getReducedMotion,
-    getReducedMotionServer
-  );
-}
 
 interface BlurTextProps {
   text: string;
