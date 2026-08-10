@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { gsap } from "gsap";
 import { LoomieLogoMark } from "./LoomieLogoMark";
+import { useLenis } from "./LenisScrollProvider";
 
 const NAV_ITEMS = [
   { label: "Work", href: "/work", number: "01" },
@@ -20,6 +21,7 @@ export function Navbar() {
   const lastScrollY = useRef(0);
   const overlayRef = useRef<HTMLDivElement>(null);
   const menuLinksRef = useRef<HTMLDivElement>(null);
+  const lenis = useLenis();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -47,13 +49,25 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Scroll must never be left locked, even if the navbar unmounts mid-close.
+  // The ref object is aliased so the dependency is the stable object rather
+  // than a value read from it; the cleanup still reads the live .current.
+  useEffect(() => {
+    const scroller = lenis;
+    return () => {
+      scroller?.current?.start();
+    };
+  }, [lenis]);
+
   // GSAP Powerup & Down Overlay Animation
   const toggleMenu = () => {
     if (!overlayRef.current) return;
 
     if (!menuOpen) {
       setMenuOpen(true);
-      document.body.style.overflow = "hidden";
+      // Lenis ignores an overflow write on body, so the page would keep
+      // scrolling behind the overlay.
+      lenis?.current?.stop();
 
       const tl = gsap.timeline();
 
@@ -85,7 +99,7 @@ export function Navbar() {
       const tl = gsap.timeline({
         onComplete: () => {
           setMenuOpen(false);
-          document.body.style.overflow = "auto";
+          lenis?.current?.start();
           if (overlayRef.current) {
             overlayRef.current.style.display = "none";
           }
