@@ -11,6 +11,7 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { PageTransition } from "@/components/PageTransition";
 import { ScrollTemperature } from "@/components/ScrollTemperature";
+import { SceneRoot } from "@/components/three/SceneRoot";
 
 /**
  * Three faces, three jobs.
@@ -101,6 +102,7 @@ export default function RootLayout({
           Skip to content
         </a>
         <ScrollTemperature />
+        <SceneRoot />
         <LoadingScreen />
         <ThemeProvider>
           <LenisScrollProvider>

@@ -31,10 +31,18 @@ const DEFAULT_DURATION = 0.8;
 const DEFAULT_STAGGER = 0.03;
 const EASE = "power3.out";
 
+/**
+ * Deliberately a narrow union rather than React.ElementType. Installing
+ * @react-three/fiber augments JSX.IntrinsicElements with every three.js
+ * element, most of which type children as never, so a wide ElementType stops
+ * accepting children at all.
+ */
+type TextTag = "h1" | "h2" | "h3" | "h4" | "p" | "span" | "div";
+
 interface BlurTextProps {
   text: string;
   /** Defaults to span. */
-  as?: React.ElementType;
+  as?: TextTag;
   trigger?: "mount" | "scroll";
   /** Seconds before the tween starts. */
   delay?: number;
@@ -166,7 +174,13 @@ export function BlurText({
   const words = text.split(" ");
 
   return (
-    <Tag ref={rootRef} className={className} aria-label={text}>
+    <Tag
+      // The tag is a union, so TypeScript resolves ref to one concrete member.
+      // Every member accepts an HTMLElement ref at runtime.
+      ref={rootRef as React.RefObject<HTMLHeadingElement>}
+      className={className}
+      aria-label={text}
+    >
       {words.map((word, wordIndex) => (
         <React.Fragment key={`${word}-${wordIndex}`}>
           <span
