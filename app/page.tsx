@@ -1,6 +1,7 @@
 import { Navbar } from "@/components/Navbar";
 import { HeroSection } from "@/components/HeroSection";
 import { Marquee } from "@/components/Marquee";
+import { ExplodedView } from "@/components/ExplodedView";
 import { ServicesSection } from "@/components/ServicesSection";
 import { PartnersMarquee } from "@/components/PartnersMarquee";
 import { PortfolioGrid } from "@/components/PortfolioGrid";
@@ -11,6 +12,7 @@ export default function Home() {
     <main id="main" className="relative min-h-screen bg-background text-foreground overflow-hidden">
       <Navbar />
       <HeroSection />
+      <ExplodedView />
       <Marquee />
       <ServicesSection />
       <PartnersMarquee />
