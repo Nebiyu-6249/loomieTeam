@@ -305,7 +305,7 @@ export function ExplodedView() {
           <BlurText
             as="h2"
             text="One system carrying a single idea all the way through"
-            className="block text-2xl sm:text-4xl md:text-5xl font-black tracking-tighter uppercase text-foreground max-w-4xl"
+            className="block font-display font-normal text-3xl sm:text-5xl md:text-6xl tracking-[-0.02em] text-foreground max-w-4xl leading-[1.02]"
           />
         </header>
 

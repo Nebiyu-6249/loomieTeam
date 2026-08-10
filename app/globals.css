@@ -3,9 +3,25 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #f4f4f7;
+  /* Scroll temperature. ScrollTemperature overwrites --background, --surface,
+     --surface-card, --accent-strength and --grain-opacity every frame; the
+     values here are the cold end, used before hydration and if JS never runs. */
+  --accent-strength: 0;
+  --grain-opacity: 0.022;
+
+  /* The cold end of the background ramp, exposed so the letter thaw can start
+     from it. Characters resolve out of the page rather than fading in. */
+  --bg-cold: #F2F5F9;
+
+  /* PLACEHOLDER — replace with the exact gold from the brand file before
+     shipping. Everything downstream reads --accent-brand, so it is one edit.
+     Light mode needs a darker gold: #E8DFA0 on an off-white ground fails
+     contrast badly. Same hue, taken down to a legible value. */
+  --accent-brand: #7C6B1F;
+
+  --background: #F2F5F9;
   --surface: #ffffff;
-  --surface-card: #eaeae9;
+  --surface-card: #E7EBF1;
   --foreground: #08080a;
   --foreground-secondary: #5e5e6e;
   --accent: #08080a;
@@ -16,9 +32,11 @@
 }
 
 .dark {
-  --background: #050507;
-  --surface: #0b0b0e;
-  --surface-card: #111116;
+  --bg-cold: #04060A;
+  --accent-brand: #E8DFA0;
+  --background: #04060A;
+  --surface: #080B11;
+  --surface-card: #0E121A;
   --foreground: #ffffff;
   --foreground-secondary: #8a8a9a;
   --accent: #ffffff;
@@ -29,8 +47,12 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-inter), system-ui, sans-serif;
-  --font-mono: var(--font-inter), monospace;
+  /* Three faces. --font-mono previously pointed at Inter, which meant every
+     font-mono class in the codebase rendered with no effect at all. */
+  --font-display: var(--font-display-serif), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-body-sans), system-ui, sans-serif;
+  --font-mono: var(--font-technical-mono), ui-monospace, "SFMono-Regular",
+    monospace;
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-card: var(--surface-card);
@@ -38,21 +60,41 @@
   --color-foreground-secondary: var(--foreground-secondary);
   --color-accent: var(--accent);
   --color-accent-glow: var(--accent-glow);
+  --color-accent-brand: var(--accent-brand);
+  /* Gold that is literally absent at the top of the page and fully present at
+     the bottom, because --accent-strength runs 0 to 1 with scroll. */
+  --color-accent-warm: color-mix(
+    in oklab,
+    var(--accent-brand) calc(var(--accent-strength) * 100%),
+    var(--foreground-secondary)
+  );
   --color-border-custom: var(--border-color);
   --color-glass-bg: var(--glass-bg);
   --color-glass-border: var(--glass-border);
 }
 
-html, body {
+html {
+  /* Only html carries the ground colour. Its background propagates to the
+     canvas and paints beneath everything, which leaves room for the fixed
+     WebGL layer at -z-10 to be seen.
+
+     Putting the same colour on body would hide it: a block box background
+     paints in step 3 of the stacking order and negative z-index children paint
+     in step 2, so an opaque body covers the scene completely. */
   background-color: var(--background);
+}
+
+html, body {
   color: var(--foreground);
-  transition: background-color 0.35s ease, color 0.35s ease;
+  /* No transition on background-color: ScrollTemperature writes it every
+     frame, and a 0.35s ease would smear each write into the next. Colour is
+     still transitioned for the theme toggle. */
+  transition: color 0.35s ease;
   /* clip, not hidden: overflow-x:hidden makes the other axis compute to auto,
      which turns body into a scroll container and stops position:sticky from
      ever engaging against the viewport. clip does the same horizontal
      clipping without creating a scrollport. */
   overflow-x: clip;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   cursor: auto;
 }
 
@@ -81,7 +123,9 @@ body::before {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.025'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  /* Density rises toward the river end. Driven by ScrollTemperature. */
+  opacity: var(--grain-opacity);
   pointer-events: none;
   z-index: 99990;
 }
@@ -124,28 +168,6 @@ html.lenis, html.lenis body {
 
 .dark::view-transition-new(root) {
   z-index: 1;
-}
-
-/* SplitType kinetic characters & word spacing */
-.line {
-  overflow: hidden;
-}
-
-.word {
-  display: inline-block;
-  overflow: hidden;
-  margin-right: 0.32em;
-  vertical-align: bottom;
-}
-
-.word:last-child {
-  margin-right: 0;
-}
-
-.char {
-  display: inline-block;
-  will-change: transform, opacity;
-  transform-style: preserve-3d;
 }
 
 /* Loading screen: hidden before first paint on repeat visits within a

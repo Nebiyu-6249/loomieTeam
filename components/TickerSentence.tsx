@@ -49,7 +49,7 @@ const SENTENCE_TEXT = SENTENCE.filter(
   .join(" ");
 
 function GlyphMark({ glyph }: { glyph: Glyph }) {
-  const shared = "h-[0.62em] w-auto shrink-0 text-foreground-secondary";
+  const shared = "h-[0.62em] w-auto shrink-0 text-accent-warm";
 
   if (glyph === "snowflake") {
     return (
@@ -101,7 +101,7 @@ function GlyphMark({ glyph }: { glyph: Glyph }) {
         width="350"
         height="175"
         rx="87.5"
-        className="fill-foreground-secondary"
+        className="fill-current"
       />
       <circle cx="113" cy="92.5" r="46" className="fill-background" />
       <circle cx="247" cy="92.5" r="46" className="fill-background" />
@@ -168,7 +168,7 @@ export function TickerSentence() {
         data-ticker-section=""
         className="py-24 px-6 md:px-12 max-w-[1700px] mx-auto border-t border-border-custom"
       >
-        <p className="font-serif text-2xl md:text-4xl leading-snug text-foreground max-w-5xl">
+        <p className="font-display text-3xl md:text-5xl leading-snug text-foreground max-w-5xl">
           {SENTENCE.map((item, index) =>
             item.kind === "text" ? (
               <span key={index}>{item.value} </span>
@@ -205,7 +205,7 @@ export function TickerSentence() {
               key={index}
               aria-hidden="true"
               style={{ marginRight: item.gap }}
-              className="inline-flex items-center font-serif text-5xl lg:text-7xl xl:text-8xl leading-none text-foreground"
+              className="inline-flex items-center font-display text-6xl lg:text-8xl xl:text-9xl leading-none text-foreground"
             >
               {item.kind === "text" ? (
                 item.value
@@ -227,7 +227,7 @@ export function TickerSentence() {
                 <span
                   key={`${copy}-${index}`}
                   style={{ marginRight: item.gap }}
-                  className="inline-flex items-center font-serif text-2xl leading-none text-foreground whitespace-nowrap"
+                  className="inline-flex items-center font-display text-3xl leading-none text-foreground whitespace-nowrap"
                 >
                   {item.kind === "text" ? (
                     item.value

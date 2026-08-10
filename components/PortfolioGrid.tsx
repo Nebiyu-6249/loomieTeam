@@ -8,6 +8,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowUpRight } from "lucide-react";
 import { FilterBar, type FilterCategory } from "./FilterBar";
 import { BlurText } from "./BlurText";
+import { DepthCard } from "./DepthCard";
 
 interface CaseStudy {
   id: string;
@@ -194,7 +195,7 @@ export function PortfolioGrid() {
       {/* 2-Column Asymmetric Case Study Showcase (Matching Reference Screenshot 100%) */}
       <div className="grid grid-cols-12 gap-8 md:gap-12">
         {filteredStudies.map((study, index) => {
-          const cardClassName = `${study.span} group flex flex-col justify-between${
+          const cardClassName = `h-full group flex flex-col justify-between${
             study.href ? " cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground" : ""
           }`;
 
@@ -206,6 +207,7 @@ export function PortfolioGrid() {
                 ref={(el) => {
                   framesRef.current[index] = el;
                 }}
+                data-depth="back"
                 className="absolute inset-x-0 -inset-y-[10%]"
               >
                 <Image
@@ -232,7 +234,10 @@ export function PortfolioGrid() {
             </div>
 
             {/* Case Study Meta Description Below Card (Matching Screenshot Structure) */}
-            <div className="pt-4 pb-2 flex items-center justify-between border-b border-border-custom/60">
+            <div
+              data-depth="front"
+              className="pt-4 pb-2 flex items-center justify-between border-b border-border-custom/60"
+            >
               <div>
                 <h3 className="text-xl md:text-2xl font-black uppercase text-foreground leading-tight">
                   {study.title}
@@ -249,14 +254,16 @@ export function PortfolioGrid() {
             </>
           );
 
-          return study.href ? (
-            <Link key={study.id} href={study.href} className={cardClassName}>
-              {cardBody}
-            </Link>
-          ) : (
-            <div key={study.id} className={cardClassName}>
-              {cardBody}
-            </div>
+          return (
+            <DepthCard key={study.id} className={study.span}>
+              {study.href ? (
+                <Link href={study.href} className={cardClassName}>
+                  {cardBody}
+                </Link>
+              ) : (
+                <div className={cardClassName}>{cardBody}</div>
+              )}
+            </DepthCard>
           );
         })}
       </div>

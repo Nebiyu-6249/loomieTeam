@@ -16,17 +16,33 @@ import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 const MAX_CHARACTERS = 60;
 
-const FROM = { opacity: 0, y: 24, filter: "blur(10px)" } as const;
-const TO = { opacity: 1, y: 0, filter: "blur(0px)" } as const;
+/**
+ * A5 — letter thaw.
+ *
+ * Characters do not fade in from transparent. They begin in the cold
+ * background tint, so they are present but indistinguishable from the page,
+ * and resolve to full foreground. The reveal reads as thawing rather than
+ * fading, which is the whole difference.
+ */
+const FROM = { y: 24, filter: "blur(10px)" } as const;
+const TO = { y: 0, filter: "blur(0px)" } as const;
 
 const DEFAULT_DURATION = 0.8;
 const DEFAULT_STAGGER = 0.03;
 const EASE = "power3.out";
 
+/**
+ * Deliberately a narrow union rather than React.ElementType. Installing
+ * @react-three/fiber augments JSX.IntrinsicElements with every three.js
+ * element, most of which type children as never, so a wide ElementType stops
+ * accepting children at all.
+ */
+type TextTag = "h1" | "h2" | "h3" | "h4" | "p" | "span" | "div";
+
 interface BlurTextProps {
   text: string;
   /** Defaults to span. */
-  as?: React.ElementType;
+  as?: TextTag;
   trigger?: "mount" | "scroll";
   /** Seconds before the tween starts. */
   delay?: number;
@@ -78,6 +94,12 @@ export function BlurText({
     const characters = root.querySelectorAll<HTMLElement>("[data-blur-char]");
     if (characters.length === 0) return;
 
+    // Resolved rather than hardcoded: --bg-cold changes with the theme, and
+    // the target is whatever colour the heading actually inherits.
+    const rootStyles = getComputedStyle(document.documentElement);
+    const coldTint = rootStyles.getPropertyValue("--bg-cold").trim() || "#04060A";
+    const warmTarget = getComputedStyle(root).color;
+
     gsap.registerPlugin(ScrollTrigger);
 
     const mm = gsap.matchMedia();
@@ -86,15 +108,23 @@ export function BlurText({
       mm.add("(prefers-reduced-motion: no-preference)", () => {
         // Applied immediately so the characters are already hidden before the
         // tween is allowed to start, however long waitFor takes.
-        gsap.set(characters, { ...FROM, willChange: "filter, transform" });
+        gsap.set(characters, {
+          ...FROM,
+          color: coldTint,
+          willChange: "filter, transform",
+        });
 
         const settle = () => {
           // Leaving will-change on permanently is worse than never setting it.
+          // Colour is released back to inheritance so the scroll temperature
+          // and the theme toggle keep owning it afterwards.
           gsap.set(characters, { willChange: "auto" });
+          gsap.set(characters, { clearProps: "color" });
         };
 
         const vars = {
           ...TO,
+          color: warmTarget,
           duration,
           stagger,
           ease: EASE,
@@ -144,7 +174,13 @@ export function BlurText({
   const words = text.split(" ");
 
   return (
-    <Tag ref={rootRef} className={className} aria-label={text}>
+    <Tag
+      // The tag is a union, so TypeScript resolves ref to one concrete member.
+      // Every member accepts an HTMLElement ref at runtime.
+      ref={rootRef as React.RefObject<HTMLHeadingElement>}
+      className={className}
+      aria-label={text}
+    >
       {words.map((word, wordIndex) => (
         <React.Fragment key={`${word}-${wordIndex}`}>
           <span

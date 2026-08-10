@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
+import { subscribeToPointerFrame, type PointerState } from "./pointerStore";
 
 /**
  * The mark, with optional cursor tracking.
  *
- * Cursor position lives in a single module-level store with exactly one
- * mousemove listener and one requestAnimationFrame loop for the whole app,
- * however many instances are mounted. Instances register themselves on mount
- * and the listener and loop are torn down when the last one unregisters.
+ * Pointer position and the frame loop come from the shared pointerStore, so
+ * however many instances are mounted there is still exactly one listener and
+ * one rAF loop for the whole application, shared with the magnetic elements
+ * and the tilting work cards.
  */
 
 /** Exact 5.142857x scale of the 70x36 LoomieLogoMark geometry. */
@@ -33,21 +34,11 @@ interface EyeInstance {
   left: SVGCircleElement;
   right: SVGCircleElement;
   current: { x: number; y: number };
+  /** Cached so the blink styles are only written when they change. */
+  blinkScale: number;
 }
 
 const instances = new Set<EyeInstance>();
-
-const pointer = { x: 0, y: 0, seen: false };
-
-let frame = 0;
-let running = false;
-let hasFinePointer = true;
-
-const handlePointerMove = (event: MouseEvent) => {
-  pointer.x = event.clientX;
-  pointer.y = event.clientY;
-  pointer.seen = true;
-};
 
 /** Slow drift for touch devices and for before the cursor has ever moved. */
 const idleTarget = (time: number) => ({
@@ -73,17 +64,46 @@ const scrollBias = () => {
   return (progress - 0.5) * 2 * MAX_OFFSET * SCROLL_INFLUENCE;
 };
 
-const tick = (time: number) => {
-  const tracking = pointer.seen && hasFinePointer;
+/**
+ * Idle behaviour: after eight seconds without pointer movement the eyes glance
+ * away and blink, then return. Small, and it stops the page feeling like it is
+ * waiting for you.
+ */
+const IDLE_AFTER_MS = 8000;
+const GLANCE_PERIOD_MS = 5200;
+
+const idleGlance = (idleFor: number) => {
+  const since = idleFor - IDLE_AFTER_MS;
+  if (since < 0) return null;
+
+  const phase = (since % GLANCE_PERIOD_MS) / GLANCE_PERIOD_MS;
+
+  // Glance away, hold, drift back, then a blink at the end of the cycle.
+  const away = Math.sin(phase * Math.PI) ** 2;
+  const blink = phase > 0.86 && phase < 0.94;
+
+  return {
+    x: away * MAX_OFFSET * 0.8,
+    y: away * MAX_OFFSET * -0.3,
+    blink,
+  };
+};
+
+const applyFrame = (time: number, pointer: Readonly<PointerState>) => {
+  const tracking = pointer.seen && pointer.fine;
   const bias = scrollBias();
+  const glance = tracking ? idleGlance(pointer.idleFor) : null;
 
   instances.forEach((instance) => {
     let targetX: number;
     let targetY: number;
 
-    if (tracking) {
+    if (glance) {
+      targetX = glance.x;
+      targetY = glance.y;
+    } else if (tracking) {
       // Each instance measures its own position, so marks in different
-      // places on screen look in different directions.
+      // places look in different directions.
       const rect = instance.svg.getBoundingClientRect();
       const dx = pointer.x - (rect.left + rect.width / 2);
       const dy = pointer.y - (rect.top + rect.height / 2);
@@ -118,28 +138,37 @@ const tick = (time: number) => {
     const transform = `translate(${instance.current.x.toFixed(2)} ${instance.current.y.toFixed(2)})`;
     instance.left.setAttribute("transform", transform);
     instance.right.setAttribute("transform", transform);
-  });
 
-  frame = requestAnimationFrame(tick);
+    // The blink is a vertical squash of the apertures.
+    const scale = glance?.blink ? 0.08 : 1;
+    if (instance.blinkScale !== scale) {
+      instance.blinkScale = scale;
+      const squash = `scale(1 ${scale})`;
+      instance.left.style.transformOrigin = "113px 92.5px";
+      instance.right.style.transformOrigin = "247px 92.5px";
+      instance.left.style.transform = squash;
+      instance.right.style.transform = squash;
+      instance.left.style.transition = "transform 90ms linear";
+      instance.right.style.transition = "transform 90ms linear";
+    }
+  });
 };
+
+let unsubscribe: (() => void) | null = null;
 
 const registerEyes = (instance: EyeInstance) => {
   instances.add(instance);
 
-  if (!running) {
-    hasFinePointer = window.matchMedia("(pointer: fine)").matches;
-    window.addEventListener("mousemove", handlePointerMove, { passive: true });
-    frame = requestAnimationFrame(tick);
-    running = true;
+  if (!unsubscribe) {
+    unsubscribe = subscribeToPointerFrame(applyFrame);
   }
 
   return () => {
     instances.delete(instance);
 
-    if (instances.size === 0 && running) {
-      window.removeEventListener("mousemove", handlePointerMove);
-      cancelAnimationFrame(frame);
-      running = false;
+    if (instances.size === 0 && unsubscribe) {
+      unsubscribe();
+      unsubscribe = null;
     }
   };
 };
@@ -171,7 +200,13 @@ export function LoomieEyes({
     const right = rightPupilRef.current;
     if (!svg || !left || !right) return;
 
-    return registerEyes({ svg, left, right, current: { x: 0, y: 0 } });
+    return registerEyes({
+      svg,
+      left,
+      right,
+      current: { x: 0, y: 0 },
+      blinkScale: 1,
+    });
   }, [track]);
 
   return (
