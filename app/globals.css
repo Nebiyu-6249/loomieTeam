@@ -9,6 +9,10 @@
   --accent-strength: 0;
   --grain-opacity: 0.022;
 
+  /* The cold end of the background ramp, exposed so the letter thaw can start
+     from it. Characters resolve out of the page rather than fading in. */
+  --bg-cold: #F2F5F9;
+
   /* PLACEHOLDER — replace with the exact gold from the brand file before
      shipping. Everything downstream reads --accent-brand, so it is one edit.
      Light mode needs a darker gold: #E8DFA0 on an off-white ground fails
@@ -28,6 +32,7 @@
 }
 
 .dark {
+  --bg-cold: #04060A;
   --accent-brand: #E8DFA0;
   --background: #04060A;
   --surface: #080B11;
