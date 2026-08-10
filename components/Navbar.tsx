@@ -6,6 +6,7 @@ import { ArrowRight, Menu, X } from "lucide-react";
 import { gsap } from "gsap";
 import { LoomieEyes } from "./LoomieEyes";
 import { useLenis } from "./LenisScrollProvider";
+import { useMagnetic } from "./useMagnetic";
 
 const NAV_ITEMS = [
   { label: "Work", href: "/work", number: "01" },
@@ -23,6 +24,7 @@ export function Navbar() {
   const menuLinksRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const keyHandlerRef = useRef<((event: KeyboardEvent) => void) | null>(null);
+  const talkRef = useMagnetic<HTMLAnchorElement>();
   const lenis = useLenis();
 
   useEffect(() => {
@@ -259,6 +261,7 @@ export function Navbar() {
 
             {/* "Lets Talk" Button: Hides smoothly on scroll down */}
             <Link
+              ref={talkRef}
               href="/contact"
               className={`px-7 py-3 rounded-none bg-foreground text-background font-medium text-base transition-all duration-500 hover:bg-surface-card hover:text-foreground items-center gap-3 shadow-md border border-foreground transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground ${
                 showMenuLinks
