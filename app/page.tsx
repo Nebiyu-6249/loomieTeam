@@ -6,18 +6,21 @@ import { ServicesSection } from "@/components/ServicesSection";
 import { PartnersMarquee } from "@/components/PartnersMarquee";
 import { PortfolioGrid } from "@/components/PortfolioGrid";
 import { TickerSentence } from "@/components/TickerSentence";
+import { JourneyLine } from "@/components/JourneyLine";
 import { Footer } from "@/components/Footer";
 
 export default function Home() {
   return (
-    <main id="main" className="relative min-h-screen bg-background text-foreground overflow-hidden">
+    <main id="main" className="relative min-h-screen bg-background text-foreground overflow-x-clip">
       <Navbar />
       <HeroSection />
-      <ExplodedView />
-      <Marquee />
-      <ServicesSection />
-      <PartnersMarquee />
-      <PortfolioGrid />
+      <JourneyLine>
+        <ExplodedView />
+        <Marquee />
+        <ServicesSection />
+        <PartnersMarquee />
+        <PortfolioGrid />
+      </JourneyLine>
       <TickerSentence />
       <Footer />
     </main>
