@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
+import { BlurText } from "./BlurText";
 
 /**
  * Reveal-only route transition.
@@ -35,9 +36,6 @@ const SWEEP_TOTAL_MS = (PANEL_DURATION + (PANEL_COUNT - 1) * PANEL_STAGGER) * 10
 
 /** GSAP power4.inOut as a cubic bezier, for parity with the rest of the site. */
 const EASE_POWER4_IN_OUT = [0.86, 0, 0.07, 1] as const;
-/** GSAP power3.out. */
-const EASE_POWER3_OUT = [0.165, 0.84, 0.44, 1] as const;
-
 /**
  * The letter effect is scaled down here. Task 8.3's 0.8s duration cannot both
  * arrive and leave inside a 0.64s sweep, and the ceiling is the harder
@@ -113,23 +111,13 @@ function Sweep({ pathname }: { pathname: string }) {
           ease: "linear",
         }}
       >
-        <span className="text-background text-4xl md:text-6xl font-black tracking-tighter uppercase">
-          {name.split("").map((character, index) => (
-            <motion.span
-              key={index}
-              className="inline-block"
-              initial={{ opacity: 0, y: 24, filter: "blur(10px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{
-                duration: LABEL_DURATION,
-                delay: index * LABEL_STAGGER,
-                ease: EASE_POWER3_OUT,
-              }}
-            >
-              {character === " " ? " " : character}
-            </motion.span>
-          ))}
-        </span>
+        <BlurText
+          text={name}
+          trigger="mount"
+          duration={LABEL_DURATION}
+          stagger={LABEL_STAGGER}
+          className="text-background text-4xl md:text-6xl font-black tracking-tighter uppercase"
+        />
       </motion.div>
     </div>
   );

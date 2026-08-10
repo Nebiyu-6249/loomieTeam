@@ -2,6 +2,7 @@
 
 import React from "react";
 import { LoomieEyes } from "./LoomieEyes";
+import { BlurText } from "./BlurText";
 
 const SPECS = [
   { label: "Construction", value: "Pill + two apertures" },
@@ -20,9 +21,11 @@ export function IdentitySection() {
         03 / Identity
       </span>
 
-      <h2 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tighter uppercase text-foreground leading-[0.95] max-w-4xl">
-        The mark
-      </h2>
+      <BlurText
+        as="h2"
+        text="The mark"
+        className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tighter uppercase text-foreground leading-[0.95] max-w-4xl"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 mt-16 items-center">
         {/* Blueprint */}

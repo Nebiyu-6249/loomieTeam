@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { LoomieEyes } from "./LoomieEyes";
+import { markLoaderFinished } from "./loaderSignal";
 
 /**
  * Plays on every hard load and never between routes.
@@ -27,10 +28,16 @@ export function LoadingScreen() {
   const counterRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
-    if (!present) return;
+    // Every exit path signals, so a waiter can never hang. This covers the
+    // client-side navigation case, where the overlay never mounts at all.
+    if (!present) {
+      markLoaderFinished();
+      return;
+    }
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       hasPlayed = true;
+      markLoaderFinished();
       // Already display:none from the head script, so unmounting on the next
       // frame is invisible.
       const id = requestAnimationFrame(() => setPresent(false));
@@ -42,6 +49,7 @@ export function LoadingScreen() {
     const timeline = gsap.timeline({
       onComplete: () => {
         hasPlayed = true;
+        markLoaderFinished();
         setPresent(false);
       },
     });
