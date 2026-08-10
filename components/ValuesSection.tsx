@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from "react";
 import Image from "next/image";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { BlurText } from "./BlurText";
 
 const VALUES = [
   {
@@ -101,9 +102,11 @@ export function ValuesSection() {
         02 / Values
       </span>
 
-      <h2 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tighter uppercase text-foreground leading-[0.95] max-w-4xl">
-        What we hold to
-      </h2>
+      <BlurText
+        as="h2"
+        text="What we hold to"
+        className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tighter uppercase text-foreground leading-[0.95] max-w-4xl"
+      />
 
       <div
         ref={listRef}

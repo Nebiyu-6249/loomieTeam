@@ -5,6 +5,7 @@ import Image from "next/image";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowUpRight, Sparkles } from "lucide-react";
+import { BlurText } from "./BlurText";
 
 interface Project {
   id: string;
@@ -126,9 +127,12 @@ export function PinnedProjects() {
             <Sparkles className="w-3.5 h-3.5" />
             <span>01 / SELECTED CASE STUDIES</span>
           </div>
-          <h2 className="text-4xl md:text-7xl font-black tracking-tighter uppercase text-foreground">
-            PINNED <span className="text-accent">STACK</span>
-          </h2>
+          <BlurText
+            as="h2"
+            text="PINNED STACK"
+            lastWordClassName="text-accent"
+            className="block text-4xl md:text-7xl font-black tracking-tighter uppercase text-foreground"
+          />
         </div>
 
         <div className="flex items-center gap-4 text-xs font-mono text-foreground-secondary">

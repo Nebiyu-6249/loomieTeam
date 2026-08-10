@@ -7,6 +7,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowUpRight } from "lucide-react";
 import { FilterBar, type FilterCategory } from "./FilterBar";
+import { BlurText } from "./BlurText";
 
 interface CaseStudy {
   id: string;
@@ -174,9 +175,12 @@ export function PortfolioGrid() {
           <span className="text-xs font-mono font-bold uppercase tracking-widest text-foreground-secondary mb-2 block">
             02 / CREATIVE ARCHIVE
           </span>
-          <h2 className="text-4xl md:text-6xl font-black tracking-tighter uppercase text-foreground">
-            EXPLORATION <span className="text-foreground border-b-4 border-foreground pb-1">GRID</span>
-          </h2>
+          <BlurText
+            as="h2"
+            text="EXPLORATION GRID"
+            lastWordClassName="text-foreground border-b-4 border-foreground pb-1"
+            className="block text-4xl md:text-6xl font-black tracking-tighter uppercase text-foreground"
+          />
         </div>
       </div>
 
