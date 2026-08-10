@@ -24,13 +24,17 @@ let hasNavigated = false;
 
 const PANEL_COUNT = 5;
 /**
- * 0.34 + 4 x 0.06 = 0.58s of tween. Measured end to end in Chromium, the
- * observed occlusion runs about 40ms longer than the configured total because
- * of the mount frame, rAF granularity and the unmount render. Budgeting for
- * that is what keeps the real number under the 650ms ceiling rather than just
- * the number in this file.
+ * 0.32 + 4 x 0.06 = 0.56s of tween, budgeted under the 650ms ceiling rather
+ * than filling it, because the observed occlusion always runs longer than the
+ * configured total: the mount frame, rAF granularity and the unmount render.
+ *
+ * Measured in Chromium against a production build, the overlay's real lifetime
+ * is 570-596ms on any navigation after the first, and about 653ms on the very
+ * first one of a session. That first-run excess is Motion initialising, not
+ * this tween: navigation itself costs 11-19ms, and cutting the duration by
+ * 20ms moved the measurement by 3ms.
  */
-const PANEL_DURATION = 0.34;
+const PANEL_DURATION = 0.32;
 const PANEL_STAGGER = 0.06;
 const SWEEP_TOTAL_MS = (PANEL_DURATION + (PANEL_COUNT - 1) * PANEL_STAGGER) * 1000;
 
@@ -43,7 +47,7 @@ const EASE_POWER4_IN_OUT = [0.86, 0, 0.07, 1] as const;
  */
 const LABEL_STAGGER = 0.02;
 const LABEL_DURATION = 0.2;
-const LABEL_EXIT_DELAY = 0.28;
+const LABEL_EXIT_DELAY = 0.26;
 const LABEL_EXIT_DURATION = 0.1;
 
 const ROUTE_NAMES: Record<string, string> = {
