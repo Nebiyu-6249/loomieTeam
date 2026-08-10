@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import SplitType from "split-type";
@@ -17,6 +18,8 @@ interface BentoCard {
   span: string;
   logoOverlay?: string;
   tag?: string;
+  /** Set only where a matching slug exists in PROJECTS_DATA. */
+  href?: string;
 }
 
 const BENTO_GRID_ITEMS: BentoCard[] = [
@@ -41,6 +44,7 @@ const BENTO_GRID_ITEMS: BentoCard[] = [
     span: "col-span-12 lg:col-span-5",
     logoOverlay: "VORTEX",
     tag: "TITANIUM",
+    href: "/work/vortex-titanium-module",
   },
   {
     id: "b3",
@@ -63,6 +67,7 @@ const BENTO_GRID_ITEMS: BentoCard[] = [
     span: "col-span-12 lg:col-span-7",
     logoOverlay: "SAT",
     tag: "HARDWARE UI",
+    href: "/work/sat-cybernetic-hud",
   },
 ];
 
@@ -260,11 +265,13 @@ export function HeroSection() {
 
       {/* Bento Grid Showcase */}
       <div ref={gridRef} className="grid grid-cols-12 gap-8 md:gap-10">
-        {filteredCards.map((card) => (
-          <div
-            key={card.id}
-            className={`${card.span} group relative rounded-none overflow-hidden bg-surface-card border border-border-custom shadow-2xl transition-all duration-500 hover:border-foreground cursor-pointer`}
-          >
+        {filteredCards.map((card) => {
+          const cardClassName = `${card.span} group relative rounded-none overflow-hidden bg-surface-card border border-border-custom shadow-2xl transition-all duration-500 hover:border-foreground${
+            card.href ? " cursor-pointer" : ""
+          }`;
+
+          const cardBody = (
+            <>
             <div className={`w-full ${card.aspect} relative overflow-hidden rounded-none`}>
               <Image
                 src={card.image}
@@ -307,8 +314,19 @@ export function HeroSection() {
                 <ArrowUpRight className="w-5 h-5" />
               </div>
             </div>
-          </div>
-        ))}
+            </>
+          );
+
+          return card.href ? (
+            <Link key={card.id} href={card.href} className={cardClassName}>
+              {cardBody}
+            </Link>
+          ) : (
+            <div key={card.id} className={cardClassName}>
+              {cardBody}
+            </div>
+          );
+        })}
       </div>
     </section>
   );

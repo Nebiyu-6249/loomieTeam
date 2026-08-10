@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Plus, ArrowUpRight, ChevronDown } from "lucide-react";
 
 interface CaseStudy {
@@ -14,6 +15,8 @@ interface CaseStudy {
   span: string;
   logoOverlay?: string;
   overlayStyle?: "white" | "dark" | "blue" | "orange";
+  /** Set only where a matching slug exists in PROJECTS_DATA. */
+  href?: string;
 }
 
 const CASE_STUDIES: CaseStudy[] = [
@@ -26,6 +29,7 @@ const CASE_STUDIES: CaseStudy[] = [
     aspect: "aspect-[4/3]",
     span: "col-span-12 md:col-span-7",
     logoOverlay: "VORTEX",
+    href: "/work/vortex-titanium-module",
   },
   {
     id: "cs2",
@@ -36,6 +40,7 @@ const CASE_STUDIES: CaseStudy[] = [
     aspect: "aspect-[1/1]",
     span: "col-span-12 md:col-span-5",
     logoOverlay: "OUTFINDR",
+    href: "/work/outfindr-mountain-dynamics",
   },
   {
     id: "cs3",
@@ -46,6 +51,7 @@ const CASE_STUDIES: CaseStudy[] = [
     aspect: "aspect-[16/10]",
     span: "col-span-12 md:col-span-6",
     logoOverlay: "SAT",
+    href: "/work/sat-cybernetic-hud",
   },
   {
     id: "cs4",
@@ -163,11 +169,13 @@ export function PortfolioGrid() {
 
       {/* 2-Column Asymmetric Case Study Showcase (Matching Reference Screenshot 100%) */}
       <div className="grid grid-cols-12 gap-8 md:gap-12">
-        {filteredStudies.map((study) => (
-          <div
-            key={study.id}
-            className={`${study.span} group flex flex-col justify-between cursor-pointer`}
-          >
+        {filteredStudies.map((study) => {
+          const cardClassName = `${study.span} group flex flex-col justify-between${
+            study.href ? " cursor-pointer" : ""
+          }`;
+
+          const cardBody = (
+            <>
             {/* Image Container with Brand Overlay */}
             <div className={`w-full ${study.aspect} relative overflow-hidden rounded-none bg-surface-card border border-border-custom shadow-xl transition-all duration-500 group-hover:border-foreground`}>
               <Image
@@ -207,8 +215,19 @@ export function PortfolioGrid() {
                 <ArrowUpRight className="w-4 h-4" />
               </div>
             </div>
-          </div>
-        ))}
+            </>
+          );
+
+          return study.href ? (
+            <Link key={study.id} href={study.href} className={cardClassName}>
+              {cardBody}
+            </Link>
+          ) : (
+            <div key={study.id} className={cardClassName}>
+              {cardBody}
+            </div>
+          );
+        })}
       </div>
     </section>
   );
