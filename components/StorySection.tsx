@@ -82,7 +82,7 @@ export function StorySection() {
               src="/images/project-editorial.jpg"
               alt="LOOMIE studio process"
               fill
-              priority
+              loading="lazy"
               quality={80}
               sizes="(max-width: 1024px) 100vw, 50vw"
               className="object-cover rounded-none"

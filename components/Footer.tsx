@@ -76,7 +76,7 @@ export function Footer() {
             src="/images/hero-3d-fluid.jpg"
             alt="LOOMIE Studio Visual Anchor"
             fill
-            priority
+            loading="lazy"
             quality={85}
             sizes="(max-width: 1700px) 100vw, 1700px"
             className="object-cover transition-all duration-1000 ease-out group-hover:scale-105 group-hover:brightness-[1.05]"
