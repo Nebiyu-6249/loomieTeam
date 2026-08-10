@@ -2,6 +2,7 @@ import { Navbar } from "@/components/Navbar";
 import { HeroSection } from "@/components/HeroSection";
 import { Marquee } from "@/components/Marquee";
 import { ServicesSection } from "@/components/ServicesSection";
+import { PartnersMarquee } from "@/components/PartnersMarquee";
 import { PortfolioGrid } from "@/components/PortfolioGrid";
 import { Footer } from "@/components/Footer";
 
@@ -12,6 +13,7 @@ export default function Home() {
       <HeroSection />
       <Marquee />
       <ServicesSection />
+      <PartnersMarquee />
       <PortfolioGrid />
       <Footer />
     </main>
