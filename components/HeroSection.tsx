@@ -5,9 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import SplitType from "split-type";
 import { ArrowDown, ArrowUpRight } from "lucide-react";
 import { FilterBar, type FilterCategory } from "./FilterBar";
+import { BlurText } from "./BlurText";
+import { whenLoaderFinished } from "./loaderSignal";
 
 interface BentoCard {
   id: string;
@@ -83,7 +84,7 @@ const CATEGORIES: FilterCategory[] = [
 
 export function HeroSection() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const headlineRef = useRef<HTMLHeadingElement>(null);
+  const headlineRef = useRef<HTMLDivElement>(null);
   const subtitleRef = useRef<HTMLDivElement>(null);
   const pillBarRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -99,34 +100,8 @@ export function HeroSection() {
         // Master Initial Landing Page Animation Timeline
         const masterTL = gsap.timeline({ delay: 0.1 });
 
-        // 1. Kinetic Headline 3D Character Entry
-        if (headlineRef.current) {
-          const textSplit = new SplitType(headlineRef.current, {
-            types: "chars,words",
-            tagName: "span",
-          });
-
-          if (textSplit.chars) {
-            masterTL.fromTo(
-              textSplit.chars,
-              {
-                y: 120,
-                rotateX: -85,
-                opacity: 0,
-                scale: 0.85,
-              },
-              {
-                y: 0,
-                rotateX: 0,
-                opacity: 1,
-                scale: 1,
-                duration: 1.2,
-                stagger: 0.025,
-                ease: "power4.out",
-              }
-            );
-          }
-        }
+        // 1. The headline is owned by BlurText, which splits and reveals it
+        //    per character once the loading screen has finished.
 
         // 2. Subtitle Fade & Slide Up
         if (subtitleRef.current) {
@@ -225,19 +200,16 @@ export function HeroSection() {
       {/* Headline & Subtitle Block */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end mb-16 md:mb-20">
         <div className="lg:col-span-7">
-          {/* SplitType shatters this into per-character spans, which some
-              screen readers announce letter by letter. The label carries the
-              real text and the split spans are hidden from the tree. */}
-          <h1
-            ref={headlineRef}
-            aria-label="Design that connects"
-            className="text-5xl sm:text-7xl md:text-8xl lg:text-[6.8rem] font-extrabold tracking-tight leading-[0.92] text-foreground font-sans uppercase max-w-3xl"
-            style={{ perspective: "1000px", willChange: "transform, opacity" }}
-          >
-            <span aria-hidden="true">Design</span>{" "}
-            <span aria-hidden="true">that</span>{" "}
-            <span aria-hidden="true" className="text-foreground border-b-4 border-foreground pb-1">connects</span>
-          </h1>
+          <div ref={headlineRef}>
+            <BlurText
+              as="h1"
+              text="Design that connects"
+              trigger="mount"
+              waitFor={whenLoaderFinished}
+              lastWordClassName="text-foreground border-b-4 border-foreground pb-1"
+              className="text-5xl sm:text-7xl md:text-8xl lg:text-[6.8rem] font-extrabold tracking-tight leading-[0.92] text-foreground font-sans uppercase max-w-3xl"
+            />
+          </div>
         </div>
 
         <div

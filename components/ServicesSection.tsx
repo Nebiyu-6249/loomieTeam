@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { BlurText } from "./BlurText";
 
 interface Service {
   number: string;
@@ -79,9 +80,11 @@ export function ServicesSection() {
         01 / Services
       </span>
 
-      <h2 className="text-4xl md:text-6xl font-black tracking-tighter uppercase text-foreground mb-16">
-        Services
-      </h2>
+      <BlurText
+        as="h2"
+        text="Services"
+        className="block text-4xl md:text-6xl font-black tracking-tighter uppercase text-foreground mb-16"
+      />
 
       <div className="flex flex-col gap-6">
         {SERVICES.map((service, index) => {

@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import Image from "next/image";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { BlurText } from "./BlurText";
 
 /**
  * PLACEHOLDER COPY — studio history and figures below are deliberately
@@ -29,58 +28,22 @@ const TIMELINE = [
 ];
 
 export function StorySection() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const headingRef = useRef<HTMLHeadingElement>(null);
-
-  useEffect(() => {
-    gsap.registerPlugin(ScrollTrigger);
-
-    const mm = gsap.matchMedia();
-
-    const ctx = gsap.context(() => {
-      mm.add("(prefers-reduced-motion: no-preference)", () => {
-        if (headingRef.current) {
-          gsap.fromTo(
-            headingRef.current,
-            { y: 60, opacity: 0 },
-            {
-              y: 0,
-              opacity: 1,
-              duration: 1,
-              ease: "power3.out",
-              scrollTrigger: {
-                trigger: headingRef.current,
-                start: "top 88%",
-                toggleActions: "play none none reverse",
-              },
-            }
-          );
-        }
-      });
-    }, sectionRef);
-
-    return () => {
-      mm.revert();
-      ctx.revert();
-    };
-  }, []);
-
+  // The heading is the only animated element here and BlurText owns it, so
+  // this section carries no GSAP context of its own.
   return (
     <section
       id="story"
-      ref={sectionRef}
       className="scroll-mt-28 py-24 md:py-32 px-6 md:px-12 max-w-[1700px] mx-auto"
     >
       <span className="text-xs font-mono font-bold uppercase tracking-widest text-foreground-secondary block mb-6">
         01 / Story
       </span>
 
-      <h2
-        ref={headingRef}
+      <BlurText
+        as="h2"
+        text="How the work gets made"
         className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tighter uppercase text-foreground leading-[0.95] max-w-4xl"
-      >
-        How the work gets made
-      </h2>
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 mt-16 items-start">
         <div className="lg:col-span-6">
