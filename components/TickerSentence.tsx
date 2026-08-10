@@ -49,7 +49,7 @@ const SENTENCE_TEXT = SENTENCE.filter(
   .join(" ");
 
 function GlyphMark({ glyph }: { glyph: Glyph }) {
-  const shared = "h-[0.62em] w-auto shrink-0 text-foreground-secondary";
+  const shared = "h-[0.62em] w-auto shrink-0 text-accent-warm";
 
   if (glyph === "snowflake") {
     return (
@@ -101,7 +101,7 @@ function GlyphMark({ glyph }: { glyph: Glyph }) {
         width="350"
         height="175"
         rx="87.5"
-        className="fill-foreground-secondary"
+        className="fill-current"
       />
       <circle cx="113" cy="92.5" r="46" className="fill-background" />
       <circle cx="247" cy="92.5" r="46" className="fill-background" />
