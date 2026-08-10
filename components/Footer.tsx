@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowUpRight, Mail, MapPin, Globe } from "lucide-react";
@@ -14,37 +15,44 @@ export function Footer() {
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
 
+    const mm = gsap.matchMedia();
+
     const ctx = gsap.context(() => {
-      // Monumental Animated Logo Reveal for L [LOGO] M I E
-      if (giantLogoRef.current) {
-        const children = giantLogoRef.current.children;
-        if (children && children.length > 0) {
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        // Monumental Logo Reveal for L [LOGO] M I E.
+        // A mask wipe tied to scroll position rather than a fade, so the
+        // wordmark is uncovered left to right as the footer comes up.
+        if (giantLogoRef.current) {
           gsap.fromTo(
-            Array.from(children),
-            { y: 140, opacity: 0, scale: 0.85 },
+            giantLogoRef.current,
+            { clipPath: "inset(0% 100% 0% 0%)" },
             {
-              y: 0,
-              opacity: 1,
-              scale: 1,
-              duration: 1.3,
-              stagger: 0.06,
-              ease: "power4.out",
+              clipPath: "inset(0% 0% 0% 0%)",
+              ease: "none",
               scrollTrigger: {
                 trigger: giantLogoRef.current,
-                start: "top 92%",
-                toggleActions: "play none none reverse",
+                // Ends on the wordmark's own bottom edge, not a viewport
+                // fraction: it sits near the end of the document, so
+                // "top 50%" is never reachable and the wipe would stall
+                // half-drawn.
+                start: "top bottom",
+                end: "bottom bottom",
+                scrub: 0.6,
               },
             }
           );
         }
-      }
+      });
     }, footerRef);
 
-    return () => ctx.revert();
+    return () => {
+      mm.revert();
+      ctx.revert();
+    };
   }, []);
 
   return (
-    <footer id="contact" ref={footerRef} className="relative bg-surface border-t border-border-custom pt-24 pb-12 overflow-hidden select-none">
+    <footer id="contact" ref={footerRef} className="relative bg-surface border-t border-border-custom pt-24 pb-12 overflow-hidden">
       <div className="max-w-[1700px] mx-auto px-6 md:px-12">
         {/* Main CTA Heading */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-16 gap-10">
@@ -60,7 +68,7 @@ export function Footer() {
           <div className="flex flex-col gap-4">
             <a
               href="mailto:hello@loomiestudio.com"
-              className="inline-flex items-center gap-4 px-8 py-5 rounded-none bg-foreground text-background font-bold text-lg transition-all duration-300 hover:scale-105 hover:bg-white hover:text-black border border-foreground group"
+              className="inline-flex items-center gap-4 px-8 py-5 rounded-none bg-foreground text-background font-bold text-lg transition-all duration-300 hover:scale-105 hover:bg-white hover:text-black border border-foreground group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
             >
               <Mail className="w-5 h-5" />
               <span>hello@loomiestudio.com</span>
@@ -75,7 +83,7 @@ export function Footer() {
             src="/images/hero-3d-fluid.jpg"
             alt="LOOMIE Studio Visual Anchor"
             fill
-            priority
+            loading="lazy"
             quality={85}
             sizes="(max-width: 1700px) 100vw, 1700px"
             className="object-cover transition-all duration-1000 ease-out group-hover:scale-105 group-hover:brightness-[1.05]"
@@ -135,24 +143,24 @@ export function Footer() {
             </h4>
             <ul className="space-y-3 text-foreground-secondary">
               <li>
-                <a href="#grid" className="hover:text-foreground transition-colors">
+                <Link href="/work" className="hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
                   Work Showcase
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#architecture" className="hover:text-foreground transition-colors">
-                  Technical Architecture
-                </a>
+                <Link href="/services" className="hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
+                  Services
+                </Link>
               </li>
               <li>
-                <a href="#grid" className="hover:text-foreground transition-colors">
-                  Creative Archive
-                </a>
+                <Link href="/studio" className="hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
+                  Studio
+                </Link>
               </li>
               <li>
-                <a href="#contact" className="hover:text-foreground transition-colors">
+                <Link href="/contact" className="hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
                   Start a Project
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -164,25 +172,19 @@ export function Footer() {
             </h4>
             <ul className="space-y-3 text-foreground-secondary">
               <li>
-                <a href="https://twitter.com" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors flex items-center justify-between">
+                <a href="https://twitter.com" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors flex items-center justify-between focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
                   <span>X / Twitter</span>
                   <ArrowUpRight className="w-3.5 h-3.5" />
                 </a>
               </li>
               <li>
-                <a href="https://instagram.com" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors flex items-center justify-between">
+                <a href="https://instagram.com" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors flex items-center justify-between focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
                   <span>Instagram</span>
                   <ArrowUpRight className="w-3.5 h-3.5" />
                 </a>
               </li>
               <li>
-                <a href="https://dribbble.com" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors flex items-center justify-between">
-                  <span>Dribbble</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </a>
-              </li>
-              <li>
-                <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors flex items-center justify-between">
+                <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors flex items-center justify-between focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
                   <span>LinkedIn</span>
                   <ArrowUpRight className="w-3.5 h-3.5" />
                 </a>

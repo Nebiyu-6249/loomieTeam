@@ -81,30 +81,37 @@ export function PinnedProjects() {
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
 
+    const mm = gsap.matchMedia();
+
     const ctx = gsap.context(() => {
-      const cards = cardsRef.current.filter(Boolean) as HTMLDivElement[];
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        const cards = cardsRef.current.filter(Boolean) as HTMLDivElement[];
 
-      cards.forEach((card, index) => {
-        if (index === cards.length - 1) return;
+        cards.forEach((card, index) => {
+          if (index === cards.length - 1) return;
 
-        const nextCard = cards[index + 1];
+          const nextCard = cards[index + 1];
 
-        gsap.to(card, {
-          scale: 0.9,
-          opacity: 0.4,
-          y: -30,
-          ease: "none",
-          scrollTrigger: {
-            trigger: nextCard,
-            start: "top 85%",
-            end: "top 25%",
-            scrub: 0.5,
-          },
+          gsap.to(card, {
+            scale: 0.9,
+            opacity: 0.4,
+            y: -30,
+            ease: "none",
+            scrollTrigger: {
+              trigger: nextCard,
+              start: "top 85%",
+              end: "top 25%",
+              scrub: 0.5,
+            },
+          });
         });
       });
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => {
+      mm.revert();
+      ctx.revert();
+    };
   }, []);
 
   return (
@@ -187,7 +194,7 @@ export function PinnedProjects() {
                 <div>
                   <a
                     href="#contact"
-                    className="inline-flex items-center gap-3 px-8 py-4 rounded-none bg-foreground text-background font-bold text-sm uppercase tracking-wider transition-all duration-300 hover:bg-white hover:text-black hover:scale-105"
+                    className="inline-flex items-center gap-3 px-8 py-4 rounded-none bg-foreground text-background font-bold text-sm uppercase tracking-wider transition-all duration-300 hover:bg-white hover:text-black hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
                     data-cursor="hover"
                   >
                     <span>Inspect Case Study</span>

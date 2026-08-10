@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { LenisScrollProvider } from "@/components/LenisScrollProvider";
+import { ScrollToTop } from "@/components/ScrollToTop";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -11,17 +13,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+  ),
   title: "LOOMIE — Design That Connects",
   description:
     "LOOMIE is a premium design & technology studio specializing in kinetic web development, brutalist spatial concepts, and digital branding.",
-  keywords: [
-    "LOOMIE",
-    "Branding Studio",
-    "Design News",
-    "Kinetic Web Development",
-    "Spatial Architecture",
-    "Digital Branding",
-  ],
   icons: {
     icon: "/icon.svg",
     shortcut: "/icon.svg",
@@ -31,10 +28,16 @@ export const metadata: Metadata = {
     title: "LOOMIE — Design That Connects",
     description:
       "LOOMIE is a premium design & technology studio specializing in kinetic web development, brutalist spatial concepts, and digital branding.",
-    url: "https://loomiestudio.com",
+    url: "/",
     siteName: "LOOMIE Studio",
     locale: "en_US",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "LOOMIE — Design That Connects",
+    description:
+      "LOOMIE is a premium design & technology studio specializing in kinetic web development, brutalist spatial concepts, and digital branding.",
   },
 };
 
@@ -45,9 +48,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('loomie-theme');if(t==='light'){document.documentElement.classList.remove('dark')}}catch(e){}})();`,
+          }}
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{if(sessionStorage.getItem('loomie-loaded')==='1'||window.matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.setAttribute('data-loomie-loaded','1')}}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className={`${inter.variable} font-sans antialiased bg-background text-foreground`}>
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[999999] focus:px-4 focus:py-2 focus:bg-foreground focus:text-background focus:font-mono focus:text-sm"
+        >
+          Skip to content
+        </a>
+        <LoadingScreen />
         <ThemeProvider>
-          <LenisScrollProvider>{children}</LenisScrollProvider>
+          <LenisScrollProvider>
+            <ScrollToTop />
+            {children}
+          </LenisScrollProvider>
         </ThemeProvider>
       </body>
     </html>
