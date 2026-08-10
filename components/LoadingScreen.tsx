@@ -4,40 +4,46 @@ import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { LoomieEyes } from "./LoomieEyes";
 
-const SESSION_KEY = "loomie-loaded";
+/**
+ * Plays on every hard load and never between routes.
+ *
+ * The gate is module-level rather than sessionStorage. Module state resets on
+ * a hard page load or direct entry, and survives client-side navigation, which
+ * is exactly the wanted behaviour. It is only ever set from an effect, so the
+ * server module never flips it and SSR always renders the overlay, matching
+ * the client's first render on a fresh load.
+ */
+let hasPlayed = false;
 
 /**
- * Shown once per session, and never under reduced motion.
- *
- * The overlay is rendered on the server so there is no flash of page before
- * it appears on a first visit. The inline script in <head> stamps
- * data-loomie-loaded on documentElement when it should be skipped, and CSS
- * hides it before first paint; this component then removes it from the DOM
- * so it cannot trap focus.
+ * The overlay is rendered on the server so there is no flash of page before it
+ * appears. The inline script in <head> stamps data-loomie-loaded on
+ * documentElement under reduced motion, and CSS hides it before first paint;
+ * this component then removes it from the DOM so it cannot trap focus.
  */
 export function LoadingScreen() {
-  const [present, setPresent] = useState(true);
+  const [present, setPresent] = useState(() => !hasPlayed);
   const overlayRef = useRef<HTMLDivElement>(null);
   const counterRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
-    const skip =
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
-      sessionStorage.getItem(SESSION_KEY) === "1";
+    if (!present) return;
 
-    if (skip) {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      hasPlayed = true;
       // Already display:none from the head script, so unmounting on the next
       // frame is invisible.
       const id = requestAnimationFrame(() => setPresent(false));
       return () => cancelAnimationFrame(id);
     }
 
-    sessionStorage.setItem(SESSION_KEY, "1");
-
     const counter = { value: 0 };
 
     const timeline = gsap.timeline({
-      onComplete: () => setPresent(false),
+      onComplete: () => {
+        hasPlayed = true;
+        setPresent(false);
+      },
     });
 
     timeline.to(counter, {
@@ -66,7 +72,7 @@ export function LoadingScreen() {
     return () => {
       timeline.kill();
     };
-  }, []);
+  }, [present]);
 
   if (!present) return null;
 
