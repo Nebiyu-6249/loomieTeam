@@ -47,7 +47,11 @@ html, body {
   background-color: var(--background);
   color: var(--foreground);
   transition: background-color 0.35s ease, color 0.35s ease;
-  overflow-x: hidden;
+  /* clip, not hidden: overflow-x:hidden makes the other axis compute to auto,
+     which turns body into a scroll container and stops position:sticky from
+     ever engaging against the viewport. clip does the same horizontal
+     clipping without creating a scrollport. */
+  overflow-x: clip;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   cursor: auto;
 }
