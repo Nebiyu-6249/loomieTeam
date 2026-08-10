@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowUpRight } from "lucide-react";
 import { FilterBar, type FilterCategory } from "./FilterBar";
 
@@ -118,6 +120,44 @@ const CATEGORIES: FilterCategory[] = [
 
 export function PortfolioGrid() {
   const [activeFilter, setActiveFilter] = useState<string>("ALL");
+  const sectionRef = useRef<HTMLElement>(null);
+  const framesRef = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    gsap.registerPlugin(ScrollTrigger);
+
+    const mm = gsap.matchMedia();
+
+    const ctx = gsap.context(() => {
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        // The frame stays put and the picture drifts inside it, so the card
+        // itself never moves. The image is oversized to cover the travel.
+        framesRef.current.forEach((frame) => {
+          if (!frame) return;
+
+          gsap.fromTo(
+            frame,
+            { yPercent: -6 },
+            {
+              yPercent: 6,
+              ease: "none",
+              scrollTrigger: {
+                trigger: frame,
+                start: "top bottom",
+                end: "bottom top",
+                scrub: 0.8,
+              },
+            }
+          );
+        });
+      });
+    }, sectionRef);
+
+    return () => {
+      mm.revert();
+      ctx.revert();
+    };
+  }, [activeFilter]);
 
   const filteredStudies =
     activeFilter === "ALL"
@@ -127,7 +167,7 @@ export function PortfolioGrid() {
         );
 
   return (
-    <section id="grid" className="py-32 px-6 md:px-12 max-w-[1700px] mx-auto border-t border-border-custom select-none">
+    <section ref={sectionRef} id="grid" className="py-32 px-6 md:px-12 max-w-[1700px] mx-auto border-t border-border-custom select-none">
       {/* Section Header */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-16 gap-8">
         <div>
@@ -149,7 +189,7 @@ export function PortfolioGrid() {
 
       {/* 2-Column Asymmetric Case Study Showcase (Matching Reference Screenshot 100%) */}
       <div className="grid grid-cols-12 gap-8 md:gap-12">
-        {filteredStudies.map((study) => {
+        {filteredStudies.map((study, index) => {
           const cardClassName = `${study.span} group flex flex-col justify-between${
             study.href ? " cursor-pointer" : ""
           }`;
@@ -158,16 +198,23 @@ export function PortfolioGrid() {
             <>
             {/* Image Container with Brand Overlay */}
             <div className={`w-full ${study.aspect} relative overflow-hidden rounded-none bg-surface-card border border-border-custom shadow-xl transition-all duration-500 group-hover:border-foreground`}>
-              <Image
-                src={study.image}
-                alt={study.title}
-                fill
-                quality={80}
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover rounded-none transition-all duration-700 ease-out group-hover:scale-105 group-hover:contrast-[1.08] group-hover:brightness-[1.05]"
-                loading="lazy"
-                style={{ transform: "translateZ(0)" }}
-              />
+              <div
+                ref={(el) => {
+                  framesRef.current[index] = el;
+                }}
+                className="absolute inset-x-0 -inset-y-[10%]"
+              >
+                <Image
+                  src={study.image}
+                  alt={study.title}
+                  fill
+                  quality={80}
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover rounded-none transition-all duration-700 ease-out group-hover:scale-105 group-hover:contrast-[1.08] group-hover:brightness-[1.05]"
+                  loading="lazy"
+                  style={{ transform: "translateZ(0)" }}
+                />
+              </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-70 group-hover:opacity-45 transition-opacity duration-300" />
 
               {/* Brand Logo Overlay Centered */}

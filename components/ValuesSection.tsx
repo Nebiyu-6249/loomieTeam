@@ -60,28 +60,35 @@ export function ValuesSection() {
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
 
+    const mm = gsap.matchMedia();
+
     const ctx = gsap.context(() => {
-      if (listRef.current) {
-        gsap.fromTo(
-          listRef.current.children,
-          { y: 50, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            duration: 0.8,
-            stagger: 0.1,
-            ease: "power3.out",
-            scrollTrigger: {
-              trigger: listRef.current,
-              start: "top 85%",
-              toggleActions: "play none none reverse",
-            },
-          }
-        );
-      }
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        if (listRef.current) {
+          gsap.fromTo(
+            listRef.current.children,
+            { y: 50, opacity: 0 },
+            {
+              y: 0,
+              opacity: 1,
+              duration: 0.8,
+              stagger: 0.1,
+              ease: "power3.out",
+              scrollTrigger: {
+                trigger: listRef.current,
+                start: "top 85%",
+                toggleActions: "play none none reverse",
+              },
+            }
+          );
+        }
+      });
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => {
+      mm.revert();
+      ctx.revert();
+    };
   }, []);
 
   return (

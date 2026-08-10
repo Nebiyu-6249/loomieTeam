@@ -21,26 +21,33 @@ export function CaseStudyClient({ project }: { project: ProjectDetail }) {
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
 
+    const mm = gsap.matchMedia();
+
     const ctx = gsap.context(() => {
-      if (heroImageRef.current) {
-        gsap.fromTo(
-          heroImageRef.current,
-          { scale: 1.08 },
-          {
-            scale: 1,
-            ease: "none",
-            scrollTrigger: {
-              trigger: heroImageRef.current,
-              start: "top top",
-              end: "bottom top",
-              scrub: 0.6,
-            },
-          }
-        );
-      }
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        if (heroImageRef.current) {
+          gsap.fromTo(
+            heroImageRef.current,
+            { scale: 1.08 },
+            {
+              scale: 1,
+              ease: "none",
+              scrollTrigger: {
+                trigger: heroImageRef.current,
+                start: "top top",
+                end: "bottom top",
+                scrub: 0.6,
+              },
+            }
+          );
+        }
+      });
     }, containerRef);
 
-    return () => ctx.revert();
+    return () => {
+      mm.revert();
+      ctx.revert();
+    };
   }, []);
 
   return (

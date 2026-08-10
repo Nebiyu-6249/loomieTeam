@@ -35,27 +35,34 @@ export function StorySection() {
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
 
+    const mm = gsap.matchMedia();
+
     const ctx = gsap.context(() => {
-      if (headingRef.current) {
-        gsap.fromTo(
-          headingRef.current,
-          { y: 60, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            duration: 1,
-            ease: "power3.out",
-            scrollTrigger: {
-              trigger: headingRef.current,
-              start: "top 88%",
-              toggleActions: "play none none reverse",
-            },
-          }
-        );
-      }
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        if (headingRef.current) {
+          gsap.fromTo(
+            headingRef.current,
+            { y: 60, opacity: 0 },
+            {
+              y: 0,
+              opacity: 1,
+              duration: 1,
+              ease: "power3.out",
+              scrollTrigger: {
+                trigger: headingRef.current,
+                start: "top 88%",
+                toggleActions: "play none none reverse",
+              },
+            }
+          );
+        }
+      });
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => {
+      mm.revert();
+      ctx.revert();
+    };
   }, []);
 
   return (
