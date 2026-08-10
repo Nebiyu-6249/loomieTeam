@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Cpu, Eye, Layers, Zap } from "lucide-react";
+import { Eye, Layers, Zap } from "lucide-react";
 
 export function ArchitectureSection() {
   return (
