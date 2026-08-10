@@ -55,8 +55,27 @@ const idleTarget = (time: number) => ({
   y: Math.cos(time * 0.00042) * MAX_OFFSET * 0.45,
 });
 
+/** How much of the cap scroll position alone can claim. */
+const SCROLL_INFLUENCE = 0.35;
+
+/**
+ * A vertical bias from scroll progress through the document, so the eyes drift
+ * downward as the page advances. This is the motif that carries between
+ * sections; it is added to the cursor target and the total is re-clamped.
+ */
+const scrollBias = () => {
+  const scrollable =
+    document.documentElement.scrollHeight - window.innerHeight;
+
+  if (scrollable <= 0) return 0;
+
+  const progress = Math.min(Math.max(window.scrollY / scrollable, 0), 1);
+  return (progress - 0.5) * 2 * MAX_OFFSET * SCROLL_INFLUENCE;
+};
+
 const tick = (time: number) => {
   const tracking = pointer.seen && hasFinePointer;
+  const bias = scrollBias();
 
   instances.forEach((instance) => {
     let targetX: number;
@@ -82,6 +101,15 @@ const tick = (time: number) => {
       const idle = idleTarget(time);
       targetX = idle.x;
       targetY = idle.y;
+    }
+
+    targetY += bias;
+
+    // Re-clamp, since the scroll bias can push the vector past the cap.
+    const magnitude = Math.hypot(targetX, targetY);
+    if (magnitude > MAX_OFFSET) {
+      targetX = (targetX / magnitude) * MAX_OFFSET;
+      targetY = (targetY / magnitude) * MAX_OFFSET;
     }
 
     instance.current.x += (targetX - instance.current.x) * LERP;

@@ -45,21 +45,28 @@ export function ServicesSection() {
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
 
-    const ctx = gsap.context(() => {
-      itemsRef.current.forEach((item, index) => {
-        if (!item) return;
+    const mm = gsap.matchMedia();
 
-        ScrollTrigger.create({
-          trigger: item,
-          start: "top 55%",
-          end: "bottom 45%",
-          onEnter: () => setActiveIndex(index),
-          onEnterBack: () => setActiveIndex(index),
+    const ctx = gsap.context(() => {
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        itemsRef.current.forEach((item, index) => {
+          if (!item) return;
+
+          ScrollTrigger.create({
+            trigger: item,
+            start: "top 55%",
+            end: "bottom 45%",
+            onEnter: () => setActiveIndex(index),
+            onEnterBack: () => setActiveIndex(index),
+          });
         });
       });
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => {
+      mm.revert();
+      ctx.revert();
+    };
   }, []);
 
   return (

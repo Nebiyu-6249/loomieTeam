@@ -15,33 +15,40 @@ export function Footer() {
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
 
+    const mm = gsap.matchMedia();
+
     const ctx = gsap.context(() => {
-      // Monumental Animated Logo Reveal for L [LOGO] M I E
-      if (giantLogoRef.current) {
-        const children = giantLogoRef.current.children;
-        if (children && children.length > 0) {
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        // Monumental Logo Reveal for L [LOGO] M I E.
+        // A mask wipe tied to scroll position rather than a fade, so the
+        // wordmark is uncovered left to right as the footer comes up.
+        if (giantLogoRef.current) {
           gsap.fromTo(
-            Array.from(children),
-            { y: 140, opacity: 0, scale: 0.85 },
+            giantLogoRef.current,
+            { clipPath: "inset(0% 100% 0% 0%)" },
             {
-              y: 0,
-              opacity: 1,
-              scale: 1,
-              duration: 1.3,
-              stagger: 0.06,
-              ease: "power4.out",
+              clipPath: "inset(0% 0% 0% 0%)",
+              ease: "none",
               scrollTrigger: {
                 trigger: giantLogoRef.current,
-                start: "top 92%",
-                toggleActions: "play none none reverse",
+                // Ends on the wordmark's own bottom edge, not a viewport
+                // fraction: it sits near the end of the document, so
+                // "top 50%" is never reachable and the wipe would stall
+                // half-drawn.
+                start: "top bottom",
+                end: "bottom bottom",
+                scrub: 0.6,
               },
             }
           );
         }
-      }
+      });
     }, footerRef);
 
-    return () => ctx.revert();
+    return () => {
+      mm.revert();
+      ctx.revert();
+    };
   }, []);
 
   return (

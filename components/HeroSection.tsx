@@ -92,103 +92,116 @@ export function HeroSection() {
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
 
+    const mm = gsap.matchMedia();
+
     const ctx = gsap.context(() => {
-      // Master Initial Landing Page Animation Timeline
-      const masterTL = gsap.timeline({ delay: 0.1 });
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        // Master Initial Landing Page Animation Timeline
+        const masterTL = gsap.timeline({ delay: 0.1 });
 
-      // 1. Kinetic Headline 3D Character Entry
-      if (headlineRef.current) {
-        const textSplit = new SplitType(headlineRef.current, {
-          types: "chars,words",
-          tagName: "span",
-        });
+        // 1. Kinetic Headline 3D Character Entry
+        if (headlineRef.current) {
+          const textSplit = new SplitType(headlineRef.current, {
+            types: "chars,words",
+            tagName: "span",
+          });
 
-        if (textSplit.chars) {
+          if (textSplit.chars) {
+            masterTL.fromTo(
+              textSplit.chars,
+              {
+                y: 120,
+                rotateX: -85,
+                opacity: 0,
+                scale: 0.85,
+              },
+              {
+                y: 0,
+                rotateX: 0,
+                opacity: 1,
+                scale: 1,
+                duration: 1.2,
+                stagger: 0.025,
+                ease: "power4.out",
+              }
+            );
+          }
+        }
+
+        // 2. Subtitle Fade & Slide Up
+        if (subtitleRef.current) {
           masterTL.fromTo(
-            textSplit.chars,
-            {
-              y: 120,
-              rotateX: -85,
-              opacity: 0,
-              scale: 0.85,
-            },
+            subtitleRef.current,
+            { y: 40, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" },
+            "-=0.6"
+          );
+        }
+
+        // 3. Filter Bar Pop In
+        if (pillBarRef.current) {
+          masterTL.fromTo(
+            pillBarRef.current.children,
+            { y: 20, opacity: 0, scale: 0.95 },
             {
               y: 0,
-              rotateX: 0,
               opacity: 1,
               scale: 1,
-              duration: 1.2,
-              stagger: 0.025,
-              ease: "power4.out",
+              duration: 0.5,
+              stagger: 0.04,
+              ease: "back.out(1.5)",
+            },
+            "-=0.4"
+          );
+        }
+
+        // 4. Bento Grid Cards Entrance
+        //    Clip-path wipe staggered by grid position rather than array index,
+        //    so the grid unfolds diagonally instead of in source order.
+        if (gridRef.current) {
+          gsap.fromTo(
+            gridRef.current.children,
+            { clipPath: "inset(0% 0% 100% 0%)", y: 40 },
+            {
+              clipPath: "inset(0% 0% 0% 0%)",
+              y: 0,
+              duration: 1,
+              ease: "power3.out",
+              stagger: {
+                each: 0.14,
+                grid: "auto",
+                from: "start",
+              },
+              scrollTrigger: {
+                trigger: gridRef.current,
+                start: "top 88%",
+                toggleActions: "play none none reverse",
+              },
             }
           );
         }
-      }
 
-      // 2. Subtitle Fade & Slide Up
-      if (subtitleRef.current) {
-        masterTL.fromTo(
-          subtitleRef.current,
-          { y: 40, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" },
-          "-=0.6"
-        );
-      }
-
-      // 3. Filter Bar Pop In
-      if (pillBarRef.current) {
-        masterTL.fromTo(
-          pillBarRef.current.children,
-          { y: 20, opacity: 0, scale: 0.95 },
-          {
-            y: 0,
-            opacity: 1,
-            scale: 1,
-            duration: 0.5,
-            stagger: 0.04,
-            ease: "back.out(1.5)",
-          },
-          "-=0.4"
-        );
-      }
-
-      // 4. Bento Grid Cards Entrance
-      if (gridRef.current) {
-        gsap.fromTo(
-          gridRef.current.children,
-          { y: 80, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            duration: 1,
-            stagger: 0.15,
-            ease: "power3.out",
+        // 5. ScrollTrigger Parallax Scrub on Headline after initial entry
+        if (headlineRef.current && containerRef.current) {
+          gsap.to(headlineRef.current, {
+            yPercent: -25,
+            opacity: 0.3,
+            ease: "none",
             scrollTrigger: {
-              trigger: gridRef.current,
-              start: "top 88%",
-              toggleActions: "play none none reverse",
+              trigger: containerRef.current,
+              start: "top top",
+              end: "bottom 30%",
+              scrub: 0.5,
             },
-          }
-        );
-      }
-
-      // 5. ScrollTrigger Parallax Scrub on Headline after initial entry
-      if (headlineRef.current && containerRef.current) {
-        gsap.to(headlineRef.current, {
-          yPercent: -25,
-          opacity: 0.3,
-          ease: "none",
-          scrollTrigger: {
-            trigger: containerRef.current,
-            start: "top top",
-            end: "bottom 30%",
-            scrub: 0.5,
-          },
-        });
-      }
+          });
+        }
+      });
     }, containerRef);
 
-    return () => ctx.revert();
+    return () => {
+      mm.revert();
+      ctx.revert();
+    };
   }, []);
 
   const filteredCards =
