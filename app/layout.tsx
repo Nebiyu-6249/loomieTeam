@@ -13,17 +13,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+  ),
   title: "LOOMIE — Design That Connects",
   description:
     "LOOMIE is a premium design & technology studio specializing in kinetic web development, brutalist spatial concepts, and digital branding.",
-  keywords: [
-    "LOOMIE",
-    "Branding Studio",
-    "Design News",
-    "Kinetic Web Development",
-    "Spatial Architecture",
-    "Digital Branding",
-  ],
   icons: {
     icon: "/icon.svg",
     shortcut: "/icon.svg",
@@ -33,10 +28,16 @@ export const metadata: Metadata = {
     title: "LOOMIE — Design That Connects",
     description:
       "LOOMIE is a premium design & technology studio specializing in kinetic web development, brutalist spatial concepts, and digital branding.",
-    url: "https://loomiestudio.com",
+    url: "/",
     siteName: "LOOMIE Studio",
     locale: "en_US",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "LOOMIE — Design That Connects",
+    description:
+      "LOOMIE is a premium design & technology studio specializing in kinetic web development, brutalist spatial concepts, and digital branding.",
   },
 };
 
