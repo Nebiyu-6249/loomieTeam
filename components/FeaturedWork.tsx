@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { CardSwap, Card } from "./CardSwap";
 import { BlurText } from "./BlurText";
+import { useMagnetic } from "./useMagnetic";
 
 /**
  * Featured work, one card per case study.
@@ -28,6 +29,8 @@ export interface FeaturedProject {
 }
 
 export function FeaturedWork({ projects }: { projects: FeaturedProject[] }) {
+  const seeAllRef = useMagnetic<HTMLAnchorElement>();
+
   return (
     <section
       data-featured-section=""
@@ -42,10 +45,11 @@ export function FeaturedWork({ projects }: { projects: FeaturedProject[] }) {
           <BlurText
             as="h2"
             text="Featured work"
-            className="block text-4xl md:text-6xl font-black tracking-tighter uppercase text-foreground"
+            className="block font-display font-normal text-4xl md:text-6xl tracking-[-0.02em] text-foreground"
           />
 
           <Link
+            ref={seeAllRef}
             href="/work"
             className="inline-flex items-center gap-3 mt-8 px-7 py-3.5 rounded-none bg-foreground text-background font-bold text-sm uppercase tracking-wider transition-colors duration-300 hover:bg-surface-card hover:text-foreground border border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
           >

@@ -9,6 +9,7 @@ import { ArrowDown, ArrowUpRight } from "lucide-react";
 import { FilterBar, type FilterCategory } from "./FilterBar";
 import { BlurText } from "./BlurText";
 import { whenLoaderFinished } from "./loaderSignal";
+import { SceneAnchor } from "./three/SceneAnchor";
 
 interface BentoCard {
   id: string;
@@ -206,8 +207,8 @@ export function HeroSection() {
               text="Design that connects"
               trigger="mount"
               waitFor={whenLoaderFinished}
-              lastWordClassName="text-foreground border-b-4 border-foreground pb-1"
-              className="text-5xl sm:text-7xl md:text-8xl lg:text-[6.8rem] font-extrabold tracking-tight leading-[0.92] text-foreground font-sans uppercase max-w-3xl"
+              lastWordClassName="text-foreground border-b-2 border-foreground/70 pb-1"
+              className="font-display font-normal text-6xl sm:text-8xl md:text-9xl lg:text-[8.5rem] tracking-[-0.03em] leading-[0.86] text-foreground max-w-4xl"
             />
           </div>
         </div>
@@ -216,6 +217,9 @@ export function HeroSection() {
           ref={subtitleRef}
           className="lg:col-span-5 flex flex-col justify-end space-y-6 lg:pl-10 text-foreground-secondary text-base sm:text-lg font-sans"
         >
+          {/* Reserves the space the canvas draws the ice lenses into, and
+              holds the frame lease while the hero is on screen. */}
+          <SceneAnchor id="hero-lenses" className="w-40 h-20 md:w-56 md:h-28" />
           <p className="leading-snug font-normal max-w-md">
             Where ideas turn into identities we craft experience that resonates
           </p>

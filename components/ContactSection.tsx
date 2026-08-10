@@ -2,6 +2,7 @@
 
 import React, { useSyncExternalStore } from "react";
 import { Mail, ArrowUpRight } from "lucide-react";
+import { useMagnetic } from "./useMagnetic";
 
 /**
  * Dubai does not observe daylight saving, so GST is UTC+4 all year.
@@ -78,6 +79,8 @@ const FAQS = [
 ];
 
 export function ContactSection() {
+  const emailRef = useMagnetic<HTMLAnchorElement>();
+
   return (
     <section className="pt-36 pb-24 md:pt-44 md:pb-32 px-6 md:px-12 max-w-[1700px] mx-auto">
       {/* Heading and intro */}
@@ -85,7 +88,7 @@ export function ContactSection() {
         01 / Contact
       </span>
 
-      <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter uppercase text-foreground leading-[0.95] max-w-4xl">
+      <h1 className="font-display font-normal text-5xl sm:text-7xl md:text-8xl tracking-[-0.025em] text-foreground leading-[0.9] max-w-4xl">
         Start a project
       </h1>
 
@@ -99,6 +102,7 @@ export function ContactSection() {
       <div className="mt-14 grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
         <div className="lg:col-span-7">
           <a
+            ref={emailRef}
             href="mailto:hello@loomiestudio.com"
             className="group h-full inline-flex w-full items-center gap-4 px-8 py-8 md:py-10 rounded-none bg-foreground text-background font-bold text-lg md:text-2xl border border-foreground transition-all duration-300 hover:bg-surface-card hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
           >
