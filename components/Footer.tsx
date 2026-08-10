@@ -57,7 +57,7 @@ export function Footer() {
         {/* Main CTA Heading */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-16 gap-10">
           <div>
-            <span className="text-xs uppercase font-mono tracking-widest text-foreground font-bold">
+            <span className="text-xs uppercase font-mono tracking-widest text-accent-warm font-bold">
               03 / GET IN TOUCH
             </span>
             <h2 className="font-display font-normal text-4xl sm:text-6xl md:text-7xl tracking-[-0.02em] mt-4 max-w-3xl leading-[1.05]">
