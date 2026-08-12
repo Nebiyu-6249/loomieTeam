@@ -37,6 +37,7 @@ export function SceneAnchor({
         centreX: rect.left + rect.width / 2,
         centreY: rect.top + rect.height / 2,
         width: rect.width,
+        height: rect.height,
         // How far the anchor has travelled up and out of the viewport.
         faded: Math.min(
           Math.max(-rect.bottom / Math.max(window.innerHeight, 1), 0) * 2,
