@@ -8,7 +8,7 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { observePointer, readPointer } from "../pointerStore";
 import { getCapabilities } from "./capabilities";
 import { getGradientTexture } from "./gradientTexture";
-import { readAnchor } from "./sceneStore";
+import { loaderOwnsField, readAnchor } from "./sceneStore";
 
 /**
  * A2 — the mark as two lenses of clear ice.
@@ -117,7 +117,10 @@ export function HeroLenses() {
 
     const anchor = readAnchor(ANCHOR_ID);
 
-    if (!anchor || !anchor.visible || anchor.faded >= 1) {
+    // While the loader owns the field the canvas is lifted above the overlay,
+    // so anything else drawing into it lands on the loading screen. The lenses
+    // belong to the hero and the hero is not on screen yet.
+    if (loaderOwnsField() || !anchor || !anchor.visible || anchor.faded >= 1) {
       node.visible = false;
       return;
     }

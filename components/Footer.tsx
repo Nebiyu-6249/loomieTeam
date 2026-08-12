@@ -51,8 +51,12 @@ export function Footer() {
     };
   }, []);
 
+  // bg-surface/85 rather than bg-surface: the footer is where the particle
+  // river is fully formed, and an opaque panel here blacks out the one thing
+  // the page has been travelling towards for twenty-four screens. --surface
+  // and --background are close enough that the tint barely reads.
   return (
-    <footer id="contact" ref={footerRef} className="relative bg-surface border-t border-border-custom pt-24 pb-12 overflow-hidden">
+    <footer id="contact" ref={footerRef} className="relative bg-surface/85 border-t border-border-custom pt-24 pb-12 overflow-hidden">
       <div className="max-w-[1700px] mx-auto px-6 md:px-12">
         {/* Main CTA Heading */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-16 gap-10">
