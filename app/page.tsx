@@ -6,7 +6,6 @@ import { ServicesSection } from "@/components/ServicesSection";
 import { Marquee } from "@/components/Marquee";
 import { FeaturedWork } from "@/components/FeaturedWork";
 import { PortfolioGrid } from "@/components/PortfolioGrid";
-import { JourneyLine } from "@/components/JourneyLine";
 import { TickerSentence } from "@/components/TickerSentence";
 import { PartnersMarquee } from "@/components/PartnersMarquee";
 import { Footer } from "@/components/Footer";
@@ -19,7 +18,10 @@ export default function Home() {
       <HeroSection />
 
       {/*
-        The journey line runs from the exploded view to the portfolio grid.
+        The drawn journey line is gone. The particle field is the connective
+        tissue now: it runs behind every section on the page, snow at the top
+        and river by the lower third, which is the same job done by the thing
+        the page is actually about.
 
         The two pinned sections on this page are the exploded view and the
         ticker; everything between them is unpinned, so no two pinned sections
@@ -29,13 +31,11 @@ export default function Home() {
         so it sits here, where it separates Services from the featured work
         and keeps the three horizontally moving sections from bunching.
       */}
-      <JourneyLine>
-        <ExplodedView />
-        <ServicesSection />
-        <Marquee />
-        <FeaturedWork projects={PROJECTS_DATA} />
-        <PortfolioGrid />
-      </JourneyLine>
+      <ExplodedView />
+      <ServicesSection />
+      <Marquee />
+      <FeaturedWork projects={PROJECTS_DATA} />
+      <PortfolioGrid />
 
       <TickerSentence />
 

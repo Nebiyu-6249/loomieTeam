@@ -6,10 +6,14 @@ import { getCapabilities } from "./capabilities";
 import {
   framesWanted,
   framesWantedServer,
+  loaderOwnsField,
+  loaderOwnsFieldServer,
   subscribeFrames,
+  subscribeLoader,
 } from "./sceneStore";
 import { GradientEnvironment } from "./GradientEnvironment";
 import { HeroLenses } from "./HeroLenses";
+import { Particles } from "./Particles";
 
 /**
  * The single canvas for the whole application.
@@ -23,6 +27,10 @@ import { HeroLenses } from "./HeroLenses";
  * none of three.js lands in the main bundle.
  */
 
+/** Above the loading screen while it owns the field, behind the page after. */
+const LOADER_LAYER = 1000000;
+const PAGE_LAYER = -10;
+
 export default function Scene() {
   const [hidden, setHidden] = useState(false);
 
@@ -30,6 +38,18 @@ export default function Scene() {
     subscribeFrames,
     framesWanted,
     framesWantedServer
+  );
+
+  /**
+   * A10 puts the particle field on the loading screen rather than behind it,
+   * so for the length of the loader the canvas sits above the overlay that is
+   * covering the page. It drops behind the content the moment the field is
+   * handed over.
+   */
+  const duringLoader = useSyncExternalStore(
+    subscribeLoader,
+    loaderOwnsField,
+    loaderOwnsFieldServer
   );
 
   useEffect(() => {
@@ -41,19 +61,21 @@ export default function Scene() {
   }, []);
 
   const capabilities = getCapabilities();
+  const running = wanted && !hidden;
 
   return (
     <div
       data-scene-canvas=""
-      data-scene-running={wanted && !hidden ? "true" : "false"}
+      data-scene-running={running ? "true" : "false"}
       aria-hidden="true"
-      className="fixed inset-0 -z-10 pointer-events-none"
+      className="fixed inset-0 pointer-events-none"
+      style={{ zIndex: duringLoader ? LOADER_LAYER : PAGE_LAYER }}
     >
       <Canvas
         // Never full resolution on a 3x display.
         dpr={[1, 2]}
         // Frames only while a section on screen has asked for them.
-        frameloop={wanted && !hidden ? "always" : "never"}
+        frameloop={running ? "always" : "never"}
         gl={{
           antialias: !capabilities.mobile,
           alpha: true,
@@ -64,6 +86,7 @@ export default function Scene() {
       >
         {/* Direct child of Canvas so attach targets the scene. */}
         <GradientEnvironment />
+        <Particles />
         <HeroLenses />
       </Canvas>
     </div>
