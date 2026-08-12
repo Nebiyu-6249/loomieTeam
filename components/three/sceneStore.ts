@@ -68,3 +68,88 @@ export function framesWanted() {
 export function framesWantedServer() {
   return false;
 }
+
+/**
+ * The loading screen's hold on the particle field.
+ *
+ * A10 makes the loader the page's first frame rather than a screen in front
+ * of it, so the loader drives the same points the page then inherits.
+ *
+ * The default is "the page owns the field". A loader that decides to play
+ * claims it; one that never mounts — a client-side navigation, a repeat load,
+ * reduced motion — leaves the field in its scroll state, which is what should
+ * be on screen in all three cases.
+ */
+export interface LoaderState {
+  /** 0 to 1 as the counter climbs: scattered to mark. */
+  form: number;
+  /** 0 while the loader owns the field, 1 once the page does. */
+  handoff: number;
+}
+
+const loader: LoaderState = { form: 0, handoff: 1 };
+
+const loaderListeners = new Set<() => void>();
+
+export function publishLoader(next: LoaderState) {
+  const changed =
+    // The z-index switch only cares about crossing into or out of the
+    // handoff, so per-frame form updates must not wake React.
+    (loader.handoff >= 1) !== (next.handoff >= 1);
+
+  loader.form = next.form;
+  loader.handoff = next.handoff;
+
+  if (changed) loaderListeners.forEach((listener) => listener());
+}
+
+export function readLoader(): Readonly<LoaderState> {
+  return loader;
+}
+
+export function subscribeLoader(listener: () => void) {
+  loaderListeners.add(listener);
+  return () => loaderListeners.delete(listener);
+}
+
+export function loaderOwnsField() {
+  return loader.handoff < 1;
+}
+
+export function loaderOwnsFieldServer() {
+  return false;
+}
+
+/**
+ * When the canvas is actually drawing, as opposed to merely mounted.
+ *
+ * The loading screen cannot simply assume the particle mark is there. The
+ * scene arrives on a dynamic import, then has to build a WebGL context and
+ * compile a shader, and on a slow machine all of that can outlast the loader
+ * — which is how the loading screen ends up showing a bare counter and no
+ * mark at all. Measured on a software renderer, the canvas's first frame
+ * landed after the loader had already finished.
+ *
+ * So the drawn mark holds the position until this fires, and only then hands
+ * over. If it never fires — no WebGL, or a machine too slow to matter — the
+ * drawn mark simply stays, which is the correct outcome rather than a
+ * fallback.
+ */
+let sceneDrawing = false;
+let drawingWaiters: Array<() => void> = [];
+
+export function markSceneDrawing() {
+  if (sceneDrawing) return;
+  sceneDrawing = true;
+
+  const pending = drawingWaiters;
+  drawingWaiters = [];
+  pending.forEach((resolve) => resolve());
+}
+
+export function whenSceneDrawing(): Promise<void> {
+  if (sceneDrawing) return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    drawingWaiters.push(resolve);
+  });
+}
