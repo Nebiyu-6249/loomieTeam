@@ -28,12 +28,24 @@ import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
  *   what FeaturedWork does.
  * - Below 768px the perspective stack is replaced by a horizontal snap row,
  *   because the 3D stack does not work at phone width.
+ * - The stack is draggable, with a flick carrying inertia, and focusing a card
+ *   brings it to the front. Both are in the interaction inventory; neither was
+ *   in the supplied component.
  */
 
 const EASINGS = {
   elastic: "elastic.out(0.6, 0.9)",
   linear: "power1.inOut",
 } as const;
+
+/** Pixels of drag per card. About half a card's width reads as one throw. */
+const DRAG_STEP = 150;
+/** Past this much travel the gesture was a drag, and must not also click. */
+const DRAG_SLOP = 8;
+/** Pixels per millisecond that count as one card of carry. */
+const FLICK_PER_CARD = 0.55;
+/** However hard it is thrown. Past this it stops reading as a throw. */
+const MAX_FLING = 3;
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
@@ -84,7 +96,7 @@ export function CardSwap({
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const orderRef = useRef<number[]>([]);
-  const pausedRef = useRef({ hover: false, offscreen: false });
+  const pausedRef = useRef({ hover: false, offscreen: false, dragging: false });
 
   useEffect(() => {
     if (prefersReducedMotion) return;
@@ -164,11 +176,51 @@ export function CardSwap({
             orderRef.current = [...rest, front];
           };
 
+          /**
+           * Cards slide between slots. Used for anything the visitor drives
+           * directly, where the auto-cycle's fall-away would read as the
+           * component answering back rather than following the hand.
+           */
+          const applyOrder = (order: number[], duration: number) => {
+            order.forEach((cardIndex, slot) => {
+              gsap.to(elements[cardIndex], {
+                ...slotVars(slot),
+                opacity: 1,
+                duration,
+                ease: EASINGS[easing],
+                overwrite: "auto",
+              });
+            });
+            orderRef.current = order;
+          };
+
+          const step = (direction: 1 | -1) => {
+            const order = orderRef.current;
+            applyOrder(
+              direction === 1
+                ? [...order.slice(1), order[0]]
+                : [order[order.length - 1], ...order.slice(0, -1)],
+              0.42
+            );
+          };
+
+          /**
+           * The keyboard equivalent of the drag. Tabbing to a card that is
+           * three deep in the stack would otherwise focus something buried
+           * behind two others.
+           */
+          const bringToFront = (cardIndex: number) => {
+            const order = orderRef.current;
+            const at = order.indexOf(cardIndex);
+            if (at <= 0) return;
+            applyOrder([...order.slice(at), ...order.slice(0, at)], 0.45);
+          };
+
           const start = () => {
             if (intervalRef.current) return;
             intervalRef.current = setInterval(() => {
-              const { hover, offscreen } = pausedRef.current;
-              if (hover || offscreen) return;
+              const { hover, offscreen, dragging } = pausedRef.current;
+              if (hover || offscreen || dragging) return;
               swap();
             }, delay);
           };
@@ -200,13 +252,159 @@ export function CardSwap({
             stage.addEventListener("mouseleave", onLeave);
           }
 
+          // ---- drag, with inertia -------------------------------------
+          let dragging = false;
+          let pointerId = -1;
+          let carried = 0;
+          let travelled = 0;
+          let lastX = 0;
+          let lastTime = 0;
+          let velocity = 0;
+          let fling: ReturnType<typeof setTimeout> | null = null;
+
+          const stopFling = () => {
+            if (!fling) return;
+            clearTimeout(fling);
+            fling = null;
+          };
+
+          const onPointerDown = (event: PointerEvent) => {
+            if (event.button !== 0) return;
+            stopFling();
+            gsap.killTweensOf(elements);
+
+            dragging = true;
+            pointerId = event.pointerId;
+            carried = 0;
+            travelled = 0;
+            velocity = 0;
+            lastX = event.clientX;
+            lastTime = event.timeStamp;
+            pausedRef.current.dragging = true;
+            stage.setPointerCapture(event.pointerId);
+          };
+
+          const onPointerMove = (event: PointerEvent) => {
+            if (!dragging || event.pointerId !== pointerId) return;
+
+            const dx = event.clientX - lastX;
+            const dt = Math.max(event.timeStamp - lastTime, 1);
+            lastX = event.clientX;
+            lastTime = event.timeStamp;
+
+            // Smoothed, so one stuttering frame cannot decide the throw.
+            velocity = velocity * 0.7 + (dx / dt) * 0.3;
+            carried += dx;
+            travelled += Math.abs(dx);
+
+            while (carried <= -DRAG_STEP) {
+              step(1);
+              carried += DRAG_STEP;
+            }
+            while (carried >= DRAG_STEP) {
+              step(-1);
+              carried -= DRAG_STEP;
+            }
+          };
+
+          const onPointerUp = (event: PointerEvent) => {
+            if (!dragging || event.pointerId !== pointerId) return;
+            dragging = false;
+
+            if (stage.hasPointerCapture(pointerId)) {
+              stage.releasePointerCapture(pointerId);
+            }
+
+            // A drag that ends over a card must not also follow its link.
+            //
+            // The listener has to be taken back down rather than left to
+            // once:true, which only removes itself when it fires: a drag that
+            // ends outside a link leaves it armed, and it then eats the next
+            // genuine click on a card.
+            if (travelled > DRAG_SLOP) {
+              const swallow = (click: MouseEvent) => {
+                click.preventDefault();
+                click.stopPropagation();
+              };
+              stage.addEventListener("click", swallow, {
+                capture: true,
+                once: true,
+              });
+              setTimeout(() => {
+                stage.removeEventListener("click", swallow, { capture: true });
+              }, 0);
+            }
+
+            const direction = velocity < 0 ? 1 : -1;
+            let remaining = Math.min(
+              Math.floor(Math.abs(velocity) / FLICK_PER_CARD),
+              MAX_FLING
+            );
+
+            if (remaining <= 0) {
+              pausedRef.current.dragging = false;
+              return;
+            }
+
+            // Inertia: each further card takes longer than the last, so the
+            // throw runs down rather than stopping dead.
+            let wait = 90;
+            const carry = () => {
+              step(direction);
+              remaining -= 1;
+
+              if (remaining <= 0) {
+                fling = null;
+                pausedRef.current.dragging = false;
+                return;
+              }
+
+              wait *= 1.75;
+              fling = setTimeout(carry, wait);
+            };
+
+            fling = setTimeout(carry, wait);
+          };
+
+          /**
+           * Every card is covered by a stretched anchor, and a mouse pressed
+           * on a link and moved is a native link drag as far as the browser is
+           * concerned. It takes over the gesture, fires pointercancel and
+           * stops sending pointermove — measured: one move event arrived and
+           * then the stream stopped dead. Refusing dragstart hands the gesture
+           * back, and unlike preventing pointerdown it leaves clicking and
+           * focusing alone.
+           */
+          const onDragStart = (event: DragEvent) => event.preventDefault();
+
+          const onFocusIn = (event: FocusEvent) => {
+            const target = event.target as Node | null;
+            if (!target) return;
+            const index = elements.findIndex((el) => el?.contains(target));
+            if (index >= 0) bringToFront(index);
+          };
+
+          stage.addEventListener("pointerdown", onPointerDown);
+          stage.addEventListener("pointermove", onPointerMove);
+          stage.addEventListener("pointerup", onPointerUp);
+          stage.addEventListener("pointercancel", onPointerUp);
+          stage.addEventListener("dragstart", onDragStart);
+          stage.addEventListener("focusin", onFocusIn);
+
           start();
 
           // Cleared here whichever branch above ran, so the interval can never
           // outlive the component.
           return () => {
             stop();
+            stopFling();
             observer.disconnect();
+            stage.removeEventListener("pointerdown", onPointerDown);
+            stage.removeEventListener("pointermove", onPointerMove);
+            stage.removeEventListener("pointerup", onPointerUp);
+            stage.removeEventListener("pointercancel", onPointerUp);
+            stage.removeEventListener("dragstart", onDragStart);
+            stage.removeEventListener("focusin", onFocusIn);
             if (pauseOnHover) {
               stage.removeEventListener("mouseenter", onEnter);
               stage.removeEventListener("mouseleave", onLeave);
@@ -268,8 +466,10 @@ export function CardSwap({
       <div
         ref={stageRef}
         data-cardswap-stack=""
-        className="hidden md:block relative h-[420px] lg:h-[460px]"
-        style={{ perspective: "1000px" }}
+        className="hidden md:block relative h-[420px] lg:h-[460px] cursor-grab active:cursor-grabbing select-none"
+        // pan-y so a vertical swipe still scrolls the page: the stack only
+        // takes the horizontal axis.
+        style={{ perspective: "1000px", touchAction: "pan-y" }}
       >
         <div
           className="absolute inset-0"

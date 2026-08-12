@@ -11,6 +11,7 @@ import {
   subscribeFrames,
   subscribeLoader,
 } from "./sceneStore";
+import { ExplodedPlates } from "./ExplodedPlates";
 import { GradientEnvironment } from "./GradientEnvironment";
 import { HeroLenses } from "./HeroLenses";
 import { Particles } from "./Particles";
@@ -88,6 +89,7 @@ export default function Scene() {
         <GradientEnvironment />
         <Particles />
         <HeroLenses />
+        <ExplodedPlates />
       </Canvas>
     </div>
   );

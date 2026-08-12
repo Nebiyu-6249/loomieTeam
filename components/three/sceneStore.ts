@@ -16,8 +16,9 @@ export interface Anchor {
   /** Centre of the anchor in viewport pixels. */
   centreX: number;
   centreY: number;
-  /** Anchor width in viewport pixels; the scene scales itself to match. */
+  /** Anchor size in viewport pixels; the scene scales itself to match. */
   width: number;
+  height: number;
   /** 0 while fully in place, 1 once scrolled a viewport past. */
   faded: number;
   visible: boolean;
@@ -35,6 +36,27 @@ export function clearAnchor(id: string) {
 
 export function readAnchor(id: string): Anchor | undefined {
   return anchors.get(id);
+}
+
+/**
+ * How far a scroll-scrubbed section has run, 0 to 1.
+ *
+ * The pin and the scrub stay in GSAP, where the rest of the site's
+ * scroll work lives; the scene only reads the number. Nothing in the canvas
+ * needs to know what a ScrollTrigger is.
+ */
+const sectionProgress = new Map<string, number>();
+
+export function publishProgress(id: string, value: number) {
+  sectionProgress.set(id, value);
+}
+
+export function readProgress(id: string): number {
+  return sectionProgress.get(id) ?? 0;
+}
+
+export function clearProgress(id: string) {
+  sectionProgress.delete(id);
 }
 
 let wanted = 0;

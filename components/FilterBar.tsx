@@ -39,7 +39,11 @@ export function FilterBar<T extends { categoryCode: string }>({
             aria-pressed={isActive}
             className={`px-6 py-3.5 rounded-none text-xs sm:text-sm font-mono font-bold tracking-wider uppercase transition-all duration-300 flex items-center gap-2.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground ${
               isActive
-                ? "bg-foreground text-background shadow-xl scale-105 border border-foreground"
+                ? // The selected pill still answers the cursor. Clicking it
+                  // does nothing, but a pointer landing on a control and
+                  // getting no acknowledgement at all is the one thing the
+                  // interaction inventory rules out.
+                  "bg-foreground text-background shadow-xl scale-105 border border-foreground hover:bg-foreground/85"
                 : "bg-surface-card border border-border-custom text-foreground-secondary hover:text-foreground hover:border-foreground"
             }`}
           >
