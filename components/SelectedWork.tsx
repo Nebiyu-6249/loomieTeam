@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { SELECTED_PROJECTS, type Project } from "@/lib/projects";
+import { SELECTED_PROJECTS, STATUS_LABEL, type Project } from "@/lib/projects";
 
 /**
  * The homepage's only portfolio system.
@@ -76,6 +76,14 @@ function Study({
           </div>
           <span className="font-mono text-[0.7rem] uppercase tracking-[0.16em] text-foreground-secondary text-right shrink-0">
             {project.sector}
+          </span>
+        </div>
+
+        {/* The framing, on every card. Placeholder work that does not say it
+            is placeholder work is a claim about a client relationship. */}
+        <div className="mt-3 flex items-baseline justify-between gap-4">
+          <span className="font-mono text-[0.65rem] uppercase tracking-[0.16em] text-foreground-secondary">
+            {STATUS_LABEL[project.status]}
           </span>
         </div>
 

@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { CALL_MINUTES, STUDIO_TIMEZONE, isOfferedSlot } from "@/lib/availability";
-import {
-  alreadyBooked,
-  isTaken,
-  rateLimited,
-  record,
-} from "@/lib/bookingStore";
+import { RATE_LIMIT, getBookingStore } from "@/lib/bookingStore";
+import { deliver, deliveryConfigured } from "@/lib/notify";
 import { SERVICE_OPTIONS } from "@/lib/services";
 
 /**
@@ -17,9 +13,10 @@ import { SERVICE_OPTIONS } from "@/lib/services";
  * timezone is recorded for the confirmation email but never used to decide
  * when the meeting is — the instant is.
  *
- * This route does not pretend. If no delivery channel is configured it
- * returns 503 and says so, because a booking form that always says "thanks"
- * is worse than no booking form.
+ * This route does not pretend. It refuses when there is nowhere to send the
+ * booking, it refuses when the email actually fails, and its success response
+ * says which of the two messages were really sent so the interface can only
+ * ever claim what happened.
  */
 
 export const dynamic = "force-dynamic";
@@ -68,9 +65,11 @@ export async function POST(request: Request) {
     }
   }
 
+  const store = getBookingStore();
+
   const key =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-  if (rateLimited(key)) {
+  if ((await store.hit(key, RATE_LIMIT.windowMs)) > RATE_LIMIT.max) {
     return fail(429, "Too many requests. Try again shortly.");
   }
 
@@ -104,9 +103,17 @@ export async function POST(request: Request) {
   if (!start || !isOfferedSlot(start)) {
     return fail(422, "That time is no longer available.", "start");
   }
-  if (isTaken(start)) {
-    if (alreadyBooked(email, start)) {
-      return NextResponse.json({ ok: true, duplicate: true, start });
+  const existing = await store.get(start);
+  if (existing) {
+    // The same person submitting twice is a double-click, not a clash.
+    if (existing.email.toLowerCase() === email.toLowerCase()) {
+      return NextResponse.json({
+        ok: true,
+        duplicate: true,
+        start,
+        reference: existing.id,
+        visitorConfirmed: true,
+      });
     }
     return fail(409, "That time has just been taken.", "start");
   }
@@ -124,13 +131,7 @@ export async function POST(request: Request) {
 
   const note = typeof body.note === "string" ? body.note.trim().slice(0, MAX_NOTE) : "";
 
-  /**
-   * Delivery. There is no provider wired up yet, so rather than accept the
-   * booking into a store that a restart forgets and tell the visitor it is
-   * confirmed, this refuses and says what is missing.
-   */
-  const inbox = process.env.BOOKING_NOTIFY_EMAIL;
-  if (!inbox) {
+  if (!deliveryConfigured()) {
     return NextResponse.json(
       {
         ok: false,
@@ -142,7 +143,8 @@ export async function POST(request: Request) {
     );
   }
 
-  record({
+  const booking = {
+    id: crypto.randomUUID().slice(0, 8).toUpperCase(),
     start,
     name,
     email,
@@ -150,12 +152,38 @@ export async function POST(request: Request) {
     note: note || undefined,
     timezone,
     createdAt: Date.now(),
-  });
+  };
+
+  // Claim before sending. Claiming after would leave a window in which two
+  // people are both emailed a confirmation for the same slot.
+  if (!(await store.claim(booking))) {
+    return fail(409, "That time has just been taken.", "start");
+  }
+
+  const delivery = await deliver(booking);
+
+  if (!delivery.studioNotified) {
+    // Nobody at the studio knows about this, so it is not a booking. The slot
+    // goes back rather than being silently held by a failed submission.
+    await store.release(start);
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "We could not reach the studio just now. Please email hello@loomiestudio.com and we will confirm by return.",
+      },
+      { status: 502 }
+    );
+  }
 
   return NextResponse.json({
     ok: true,
     start,
+    reference: booking.id,
     durationMinutes: CALL_MINUTES,
     studioTimezone: STUDIO_TIMEZONE,
+    // The interface says "a confirmation has been sent" only when one was.
+    visitorConfirmed: delivery.visitorConfirmed,
+    persisted: store.durable,
   });
 }

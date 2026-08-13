@@ -4,9 +4,9 @@ import { ContactSection } from "@/components/ContactSection";
 import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "Contact — LOOMIE",
+  title: "Contact — Loomie",
   description:
-    "Start a project with LOOMIE. Tell us what you are building and what is in the way.",
+    "Start a project with Loomie. Tell us what you are building and what is in the way.",
 };
 
 export default function ContactPage() {
