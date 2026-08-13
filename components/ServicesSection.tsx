@@ -1,136 +1,75 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { BlurText } from "./BlurText";
+import React from "react";
+import Image from "next/image";
+import { SERVICES, type Service } from "@/lib/services";
 
-interface Service {
-  number: string;
-  title: string;
-  description: string;
+/**
+ * Four services, each with a picture.
+ *
+ * The previous version was a sticky-scrolled list of four numbered paragraphs
+ * — the same layout four times, differing only in wording, explaining in
+ * three clauses what an image says at a glance. Each service now gets a frame
+ * from the same graded set as the work, one sentence, and a different
+ * proportion, so the section has rhythm without four different designs.
+ *
+ * No cards. There is no panel, no border and no shadow around any of these:
+ * the image is the object.
+ */
+
+const FRAME = {
+  wide: { span: "md:col-span-7", aspect: "aspect-[16/10]", offset: "" },
+  tall: { span: "md:col-span-5", aspect: "aspect-[3/4]", offset: "" },
+  square: { span: "md:col-span-4", aspect: "aspect-square", offset: "md:mt-16" },
+} as const;
+
+function ServiceEntry({ service }: { service: Service }) {
+  const frame = FRAME[service.span];
+
+  return (
+    <article className={`col-span-12 ${frame.span} ${frame.offset}`}>
+      <div className={`relative w-full ${frame.aspect} overflow-hidden bg-surface-card`}>
+        <Image
+          src={service.image.src}
+          alt={service.image.alt}
+          fill
+          quality={80}
+          loading="lazy"
+          sizes="(max-width: 768px) 100vw, 45vw"
+          className="object-cover"
+        />
+      </div>
+
+      <div className="mt-5 flex items-baseline gap-4">
+        <span className="font-mono text-[0.7rem] tracking-[0.16em] text-foreground-secondary">
+          {service.number}
+        </span>
+        <h3 className="font-display font-normal text-2xl md:text-3xl leading-none text-foreground">
+          {service.title}
+        </h3>
+      </div>
+
+      <p className="mt-3 max-w-sm text-sm leading-snug text-foreground-secondary">
+        {service.summary}
+      </p>
+    </article>
+  );
 }
 
-const SERVICES: Service[] = [
-  {
-    number: "01",
-    title: "Logo design",
-    description:
-      "A mark that still reads at 24 pixels, on a business card, and stitched onto a shirt. You get the full file set, not a single PNG.",
-  },
-  {
-    number: "02",
-    title: "Web brand identity",
-    description:
-      "Your colours, type and spacing written down as actual rules, so the website, the deck and the Instagram grid stop looking like three different companies.",
-  },
-  {
-    number: "03",
-    title: "Marketing design",
-    description:
-      "Campaign and social assets built from your own system, so the fortieth post still looks like it came from the same place as the first.",
-  },
-  {
-    number: "04",
-    title: "Website design",
-    description:
-      "Sites that load fast, read properly on a phone, and do not fall apart the first time you add a page.",
-  },
-];
-
 export function ServicesSection() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const itemsRef = useRef<(HTMLDivElement | null)[]>([]);
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  useEffect(() => {
-    gsap.registerPlugin(ScrollTrigger);
-
-    const mm = gsap.matchMedia();
-
-    const ctx = gsap.context(() => {
-      mm.add("(prefers-reduced-motion: no-preference)", () => {
-        itemsRef.current.forEach((item, index) => {
-          if (!item) return;
-
-          ScrollTrigger.create({
-            trigger: item,
-            start: "top 55%",
-            end: "bottom 45%",
-            onEnter: () => setActiveIndex(index),
-            onEnterBack: () => setActiveIndex(index),
-          });
-        });
-      });
-    }, sectionRef);
-
-    return () => {
-      mm.revert();
-      ctx.revert();
-    };
-  }, []);
-
   return (
     <section
       id="services"
-      ref={sectionRef}
-      className="py-24 md:py-32 px-6 md:px-12 max-w-[1700px] mx-auto border-t border-border-custom"
+      className="px-6 md:px-12 max-w-[1700px] mx-auto py-20 md:py-28 border-t border-border-custom"
     >
-      <span className="text-xs font-mono font-bold uppercase tracking-widest text-foreground-secondary block mb-3">
-        01 / Services
-      </span>
+      <h2 className="font-mono text-xs uppercase tracking-[0.22em] text-foreground-secondary mb-14 md:mb-20">
+        What we do
+      </h2>
 
-      <BlurText
-        as="h2"
-        text="Services"
-        className="block font-mono text-2xl md:text-3xl font-medium uppercase tracking-[0.18em] text-foreground mb-16"
-      />
-
-      <div className="flex flex-col gap-6">
-        {SERVICES.map((service, index) => {
-          const isActive = activeIndex === index;
-
-          return (
-            <div
-              key={service.number}
-              ref={(el) => {
-                itemsRef.current[index] = el;
-              }}
-              className={`sticky top-28 rounded-none border p-8 md:p-14 transition-all duration-500 ${
-                isActive
-                  ? "bg-foreground text-background border-foreground opacity-100"
-                  : "bg-surface-card border-border-custom opacity-60"
-              }`}
-              style={{ zIndex: index + 10 }}
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-start">
-                <span
-                  className={`lg:col-span-2 font-mono text-sm font-bold uppercase tracking-widest ${
-                    isActive ? "text-background" : "text-foreground-secondary"
-                  }`}
-                >
-                  {service.number}
-                </span>
-
-                <h3
-                  className={`lg:col-span-5 text-3xl md:text-5xl font-black tracking-tighter uppercase leading-[0.95] ${
-                    isActive ? "text-background" : "text-foreground"
-                  }`}
-                >
-                  {service.title}
-                </h3>
-
-                <p
-                  className={`lg:col-span-5 text-base md:text-lg leading-relaxed ${
-                    isActive ? "text-background/80" : "text-foreground-secondary"
-                  }`}
-                >
-                  {service.description}
-                </p>
-              </div>
-            </div>
-          );
-        })}
+      <div className="grid grid-cols-12 gap-x-8 gap-y-16 md:gap-y-20">
+        {SERVICES.map((service) => (
+          <ServiceEntry key={service.number} service={service} />
+        ))}
       </div>
     </section>
   );

@@ -23,9 +23,40 @@ import { publishLoader, whenSceneDrawing } from "./three/sceneStore";
  */
 let hasPlayed = false;
 
-/** The counter climb, and then the crack and clear. */
-const COUNT_DURATION = 1.6;
-const CLEAR_DURATION = 0.7;
+/**
+ * Once per session rather than once per page load. Module state resets on a
+ * hard reload, which meant the loader replayed every time somebody refreshed;
+ * sessionStorage survives that and still clears when the tab closes, so a
+ * returning visitor gets straight to the page.
+ */
+const SESSION_KEY = "loomie-loader-played";
+
+const playedThisSession = () => {
+  try {
+    return sessionStorage.getItem(SESSION_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+
+const markPlayed = () => {
+  hasPlayed = true;
+  try {
+    sessionStorage.setItem(SESSION_KEY, "1");
+  } catch {
+    /* private mode: the module flag still covers this tab's navigations */
+  }
+};
+
+/**
+ * The counter climb, and then the clear. Together under a second.
+ *
+ * This was 1.6s of counting plus 0.85s of wipe — two and a half seconds of
+ * deliberately withholding the page to play an animation. Nobody arrives
+ * wanting that twice.
+ */
+const COUNT_DURATION = 0.62;
+const CLEAR_DURATION = 0.34;
 
 export function LoadingScreen() {
   const [present, setPresent] = useState(() => !hasPlayed);
@@ -41,8 +72,11 @@ export function LoadingScreen() {
       return;
     }
 
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      hasPlayed = true;
+    if (
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      playedThisSession()
+    ) {
+      markPlayed();
       markLoaderFinished();
       // Already display:none from the head script, so unmounting on the next
       // frame is invisible.
@@ -84,7 +118,7 @@ export function LoadingScreen() {
 
     const timeline = gsap.timeline({
       onComplete: () => {
-        hasPlayed = true;
+        markPlayed();
         publishLoader({ form: 1, handoff: 1 });
         markLoaderFinished();
         setPresent(false);

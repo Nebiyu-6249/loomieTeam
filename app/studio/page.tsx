@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { StorySection } from "@/components/StorySection";
 import { ValuesSection } from "@/components/ValuesSection";
-import { IdentitySection } from "@/components/IdentitySection";
 import { ThreeMeanings } from "@/components/ThreeMeanings";
 import { Footer } from "@/components/Footer";
 
@@ -25,7 +24,6 @@ export default function StudioPage() {
 
       <StorySection />
       <ValuesSection />
-      <IdentitySection />
       <ThreeMeanings />
       <Footer />
     </main>

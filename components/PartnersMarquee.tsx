@@ -1,132 +1,101 @@
 "use client";
 
 import React from "react";
-
-interface PartnerLogo {
-  id: string;
-  name: string;
-  /** Inline mark drawn in the current text colour, sized against a 40px band. */
-  mark: React.ReactNode;
-}
+import { PARTNERS, type Partner } from "@/lib/partners";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 /**
- * PLACEHOLDER DATA — awaiting real client logos from the founder.
+ * The partner belt, deliberately quiet.
  *
- * Every name and mark below is invented for layout purposes. No third-party
- * logo, wordmark or trademark is referenced, downloaded or embedded here,
- * and none should be added to this array. Replace the whole array when real
- * assets arrive.
+ * It used to open with "TRUSTED BY" set in 6xl black uppercase above six
+ * invented names. Placeholder names cannot carry a trust claim, and setting
+ * them as though they could is the least honest thing the page could do. The
+ * heading is now the same small label every other section uses, the names run
+ * at reading size, and the belt sits low in the page where a partner list
+ * belongs.
+ *
+ * Data lives in lib/partners.ts. Replacing the placeholders is one edit there.
  */
-const PARTNER_LOGOS: PartnerLogo[] = [
-  {
-    id: "northwind",
-    name: "NORTHWIND",
-    mark: <polygon points="10,4 18,20 2,20" className="fill-current" />,
-  },
-  {
-    id: "atlas-co",
-    name: "ATLAS CO",
-    mark: (
-      <circle
-        cx="10"
-        cy="12"
-        r="8"
-        className="fill-none stroke-current"
-        strokeWidth="2.5"
-      />
-    ),
-  },
-  {
-    id: "meridian",
-    name: "MERIDIAN",
-    mark: (
-      <>
-        <rect x="2" y="4" width="16" height="16" className="fill-current" />
-        <rect x="7" y="9" width="6" height="6" className="fill-background" />
-      </>
-    ),
-  },
-  {
-    id: "kestrel",
-    name: "KESTREL",
-    mark: (
-      <path
-        d="M2 20 L10 4 L18 20"
-        className="fill-none stroke-current"
-        strokeWidth="2.5"
-      />
-    ),
-  },
-  {
-    id: "halvard",
-    name: "HALVARD",
-    mark: (
-      <>
-        <rect x="2" y="10" width="16" height="4" className="fill-current" />
-        <rect x="8" y="4" width="4" height="16" className="fill-current" />
-      </>
-    ),
-  },
-  {
-    id: "oakline",
-    name: "OAKLINE",
-    mark: (
-      <>
-        <circle cx="7" cy="12" r="5" className="fill-current" />
-        <circle cx="14" cy="12" r="5" className="fill-none stroke-current" strokeWidth="2.5" />
-      </>
-    ),
-  },
-];
 
-function PartnerWordmark({ logo }: { logo: PartnerLogo }) {
+function Mark({ kind }: { kind: Partner["path"]["kind"] }) {
+  switch (kind) {
+    case "polygon":
+      return <polygon points="10,4 18,20 2,20" className="fill-current" />;
+    case "circle":
+      return (
+        <circle cx="10" cy="12" r="8" className="fill-none stroke-current" strokeWidth="2.5" />
+      );
+    case "path":
+      return (
+        <path d="M2 20 L10 4 L18 20" className="fill-none stroke-current" strokeWidth="2.5" />
+      );
+    case "pair":
+      return (
+        <>
+          <circle cx="7" cy="12" r="5" className="fill-current" />
+          <circle cx="14" cy="12" r="5" className="fill-none stroke-current" strokeWidth="2.5" />
+        </>
+      );
+    default:
+      return (
+        <>
+          <rect x="2" y="10" width="16" height="4" className="fill-current" />
+          <rect x="8" y="4" width="4" height="16" className="fill-current" />
+        </>
+      );
+  }
+}
+
+function Wordmark({ partner }: { partner: Partner }) {
   return (
-    <div className="flex items-center gap-3.5 mr-16 shrink-0">
-      <svg viewBox="0 0 20 24" className="w-5 h-6" aria-hidden="true">
-        {logo.mark}
+    <div className="flex items-center gap-3 mr-14 shrink-0">
+      <svg viewBox="0 0 20 24" className="w-4 h-5" aria-hidden="true">
+        <Mark kind={partner.path.kind} />
       </svg>
-      <span className="font-sans font-black text-2xl md:text-3xl tracking-tight uppercase whitespace-nowrap">
-        {logo.name}
+      <span className="font-mono text-sm uppercase tracking-[0.18em] whitespace-nowrap">
+        {partner.name}
       </span>
     </div>
   );
 }
 
 export function PartnersMarquee() {
+  const prefersReducedMotion = usePrefersReducedMotion();
+
   return (
-    <section className="py-24 md:py-32 border-t border-border-custom overflow-hidden">
-      <div className="max-w-[1700px] mx-auto px-6 md:px-12 mb-12">
-        <span className="text-xs font-mono font-bold uppercase tracking-widest text-foreground-secondary block mb-3">
-          Partnerships
-        </span>
-        <h2 className="text-4xl md:text-6xl font-black tracking-tighter uppercase text-foreground">
-          Trusted by
+    <section className="py-16 md:py-20 border-t border-border-custom overflow-hidden">
+      <div className="max-w-[1700px] mx-auto px-6 md:px-12 mb-8">
+        <h2 className="font-mono text-xs uppercase tracking-[0.22em] text-foreground-secondary">
+          Partners
         </h2>
       </div>
 
-      {/*
-        Greyscale by default, colour and paused on hover. The palette is
-        monochrome today so the visible change is the opacity lift; the
-        grayscale filter starts doing real work the moment coloured client
-        logos replace the placeholders above.
-      */}
-      <div className="group w-full py-6 select-none">
-        <div
-          className="animate-marquee-smooth items-center text-foreground opacity-40 grayscale transition-[opacity,filter] duration-500 group-hover:opacity-100 group-hover:grayscale-0 group-hover:[animation-play-state:paused]"
-          aria-hidden="true"
-        >
-          {[...PARTNER_LOGOS, ...PARTNER_LOGOS, ...PARTNER_LOGOS].map(
-            (logo, index) => (
-              <PartnerWordmark key={`${logo.id}-${index}`} logo={logo} />
-            )
-          )}
-        </div>
+      {/* Reduced motion gets a wrapped list rather than a stopped belt: a
+          marquee frozen mid-scroll is a row of half-visible words. */}
+      {prefersReducedMotion ? (
+        <ul className="max-w-[1700px] mx-auto px-6 md:px-12 flex flex-wrap gap-x-10 gap-y-4 text-foreground-secondary">
+          {PARTNERS.map((partner) => (
+            <li key={partner.id}>
+              <Wordmark partner={partner} />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="group w-full select-none">
+          <div
+            className="animate-marquee-smooth items-center text-foreground-secondary transition-opacity duration-[400ms] group-hover:opacity-100 group-hover:[animation-play-state:paused] opacity-70"
+            aria-hidden="true"
+          >
+            {[...PARTNERS, ...PARTNERS, ...PARTNERS].map((partner, index) => (
+              <Wordmark key={`${partner.id}-${index}`} partner={partner} />
+            ))}
+          </div>
 
-        {/* The belt is decorative; this is the accessible reading of it. */}
-        <p className="sr-only">
-          Placeholder partner names: {PARTNER_LOGOS.map((l) => l.name).join(", ")}.
-        </p>
-      </div>
+          <p className="sr-only">
+            Partners: {PARTNERS.map((partner) => partner.name).join(", ")}.
+          </p>
+        </div>
+      )}
     </section>
   );
 }

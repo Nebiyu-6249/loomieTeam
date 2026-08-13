@@ -7,7 +7,7 @@
      --surface-card, --accent-strength and --grain-opacity every frame; the
      values here are the cold end, used before hydration and if JS never runs. */
   --accent-strength: 0;
-  --grain-opacity: 0.022;
+  --grain-opacity: 0.008;
 
   /* The cold end of the background ramp, exposed so the letter thaw can start
      from it. Characters resolve out of the page rather than fading in. */
@@ -115,7 +115,12 @@ html, body {
   will-change: transform;
 }
 
-/* Subtle Noise Background Overlay */
+/* Paper tooth, not haze.
+   This was 0.022 rising to 0.048 with scroll, over a page that also carried a
+   permanent particle field, four backdrop blurs and a blur-in on every
+   heading. Together they read as a filter over the site rather than as a
+   surface. It is now a fixed 0.008 — present on a large flat area, invisible
+   over an image, and no longer animated. */
 body::before {
   content: "";
   position: fixed;
