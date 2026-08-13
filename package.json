@@ -9,14 +9,14 @@
     "lint": "eslint",
     "optimise-images": "node scripts/optimise-images.mjs",
     "typecheck": "tsc --noEmit",
-    "grade-images": "node scripts/grade-images.mjs"
+    "grade-images": "node scripts/grade-images.mjs",
+    "make-artefacts": "node scripts/make-artefacts.mjs"
   },
   "dependencies": {
     "@react-three/fiber": "^9.7.0",
     "gsap": "^3.15.0",
     "lenis": "^1.3.26",
     "lucide-react": "^1.28.0",
-    "motion": "^13.0.0",
     "next": "16.3.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",

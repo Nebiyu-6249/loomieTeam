@@ -18,6 +18,15 @@ import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
  *
  * It happens here and nowhere else. Three states, three words, one field of
  * particles that actually changes between them, and then the page moves on.
+ *
+ * The three are not equals, and the section no longer pretends they are.
+ * River is the primary echo: it is the state the studio's proposition is
+ * actually about — material that has started moving and, in moving, connects
+ * things that were separate. Snow and Light are secondary, and they are here
+ * to give River its meaning: the before, where everything needed is present
+ * but inert, and the after, where it has arrived and can be read. Set at the
+ * same size all three read as a list of moods. Set with River larger, and
+ * holding the middle half of the scroll, they read as one thing with a middle.
  */
 
 const PROGRESS_ID = "state";
@@ -28,13 +37,43 @@ interface State {
   line: string;
   /** Where in the section's scroll this state is the current one. */
   at: number;
+  /**
+   * Primary carries the idea; secondary are the endpoints that give it a
+   * shape. Nearest-state-wins already hands River the middle half of the
+   * scroll — this is the same hierarchy said in type.
+   */
+  weight: "primary" | "secondary";
 }
 
 const STATES: State[] = [
-  { id: "snow", label: "Snow", line: "Still, and holding everything it needs.", at: 0 },
-  { id: "river", label: "River", line: "Moving, and now it connects things.", at: 0.5 },
-  { id: "light", label: "Light", line: "Arrived, and legible.", at: 1 },
+  {
+    id: "snow",
+    label: "Snow",
+    line: "Still, and holding everything it needs.",
+    at: 0,
+    weight: "secondary",
+  },
+  {
+    id: "river",
+    label: "River",
+    line: "Moving, and now it connects things.",
+    at: 0.5,
+    weight: "primary",
+  },
+  {
+    id: "light",
+    label: "Light",
+    line: "Arrived, and legible.",
+    at: 1,
+    weight: "secondary",
+  },
 ];
+
+/** One step apart, sharing a baseline so the change is in size, not position. */
+const WEIGHT = {
+  primary: "text-6xl md:text-8xl lg:text-9xl text-foreground",
+  secondary: "text-5xl md:text-6xl lg:text-7xl text-foreground-secondary",
+} as const;
 
 export function StateSection() {
   const prefersReducedMotion = usePrefersReducedMotion();
@@ -91,7 +130,13 @@ export function StateSection() {
         <dl className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {STATES.map((state) => (
             <div key={state.id}>
-              <dt className="font-display font-normal text-4xl text-foreground">
+              <dt
+                className={`font-display font-normal ${
+                  state.weight === "primary"
+                    ? "text-5xl md:text-6xl text-foreground"
+                    : "text-3xl md:text-4xl text-foreground-secondary"
+                }`}
+              >
                 {state.label}
               </dt>
               <dd className="mt-3 text-sm text-foreground-secondary">{state.line}</dd>
@@ -125,7 +170,9 @@ export function StateSection() {
             <p
               key={state.id}
               aria-hidden={index !== active}
-              className="absolute inset-0 font-display font-normal text-6xl md:text-8xl lg:text-9xl leading-none tracking-[-0.03em] text-foreground transition-opacity duration-[500ms]"
+              className={`absolute inset-x-0 bottom-0 font-display font-normal leading-none tracking-[-0.03em] transition-opacity duration-[500ms] ${
+                WEIGHT[state.weight]
+              }`}
               style={{ opacity: index === active ? 1 : 0 }}
             >
               {state.label}

@@ -4,7 +4,7 @@ import {
   STUDIO_TIMEZONE,
   availableSlots,
 } from "@/lib/availability";
-import { isTaken } from "@/lib/bookingStore";
+import { getBookingStore } from "@/lib/bookingStore";
 
 /**
  * What the studio has free, as absolute instants.
@@ -17,13 +17,17 @@ import { isTaken } from "@/lib/bookingStore";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const slots = availableSlots().filter((slot) => !isTaken(slot.start));
+  const store = getBookingStore();
+  const taken = new Set(await store.taken());
+  const slots = availableSlots().filter((slot) => !taken.has(slot.start));
 
   return NextResponse.json(
     {
       studioTimezone: STUDIO_TIMEZONE,
       durationMinutes: CALL_MINUTES,
       slots,
+      /** So the interface can tell whether the diary survives a restart. */
+      persisted: store.durable,
     },
     { headers: { "Cache-Control": "no-store" } }
   );

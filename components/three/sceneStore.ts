@@ -21,6 +21,17 @@ export interface Anchor {
   height: number;
   /** 0 while fully in place, 1 once scrolled a viewport past. */
   faded: number;
+  /**
+   * How much of the anchor is inside the viewport, 0 to 1.
+   *
+   * `visible` is a yes/no from an IntersectionObserver with margin, which is
+   * the right signal for holding a frame lease and the wrong one for drawing:
+   * the canvas is one fixed full-screen layer, so anything it renders covers
+   * the whole viewport regardless of where its anchor is. Gated on `visible`
+   * alone the particle field kept painting across the section below while its
+   * own section was two-thirds gone. This is the number that fades it out.
+   */
+  presence: number;
   visible: boolean;
 }
 

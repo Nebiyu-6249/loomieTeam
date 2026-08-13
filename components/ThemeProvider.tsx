@@ -1,8 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useRef } from "react";
-import { gsap } from "gsap";
-import { Sun, Moon } from "lucide-react";
+import React, { createContext, useContext } from "react";
 
 type Theme = "light" | "dark";
 
@@ -16,19 +14,22 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 const readTheme = (): Theme =>
   document.documentElement.classList.contains("dark") ? "dark" : "light";
 
+/**
+ * The theme, with no chrome of its own.
+ *
+ * There used to be a bordered sun/moon button pinned to the bottom-right
+ * corner at z-index 9999, floating over every page at every scroll position.
+ * It was the most prominent permanent control on a site whose subject is other
+ * people's work, and the first thing a visitor's eye went to on a page meant
+ * to lead with a headline. The switch now lives in the menu, with the rest of
+ * the site's controls, and this component provides only the behaviour.
+ *
+ * The view-transition circle is kept: it wipes from wherever the control
+ * happens to be, so it works just as well from inside the menu.
+ */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const iconRef = useRef<HTMLDivElement>(null);
-
   const toggleTheme = (e?: React.MouseEvent) => {
     const nextTheme: Theme = readTheme() === "dark" ? "light" : "dark";
-
-    if (iconRef.current) {
-      gsap.fromTo(
-        iconRef.current,
-        { rotate: 0, scale: 0.75 },
-        { rotate: 360, scale: 1, duration: 0.55, ease: "back.out(1.7)" }
-      );
-    }
 
     const updateDOM = () => {
       localStorage.setItem("loomie-theme", nextTheme);
@@ -73,17 +74,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   return (
     <ThemeContext.Provider value={{ getTheme: readTheme, toggleTheme }}>
       {children}
-      <button
-        onClick={(e) => toggleTheme(e)}
-        className="fixed bottom-8 right-8 z-[9999] p-4 rounded-none bg-surface-card border border-border-custom text-foreground shadow-2xl transition-all duration-300 hover:border-foreground hover:border-foreground group select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
-        aria-label="Toggle Light / Dark Theme"
-        data-cursor="hover"
-      >
-        <div ref={iconRef}>
-          <Sun className="w-5 h-5 text-amber-400 hidden dark:block" />
-          <Moon className="w-5 h-5 text-indigo-600 block dark:hidden" />
-        </div>
-      </button>
     </ThemeContext.Provider>
   );
 }

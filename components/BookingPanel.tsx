@@ -33,7 +33,7 @@ interface Availability {
 type Status =
   | { kind: "idle" }
   | { kind: "sending" }
-  | { kind: "booked"; start: string }
+  | { kind: "booked"; start: string; visitorConfirmed: boolean; reference?: string }
   | { kind: "error"; message: string; field?: string };
 
 /** A small, sane set plus whatever the visitor's browser reports. */
@@ -174,7 +174,14 @@ export function BookingPanel() {
         return;
       }
 
-      setStatus({ kind: "booked", start: data.start });
+      setStatus({
+        kind: "booked",
+        start: data.start,
+        // The server reports whether the visitor's own confirmation email
+        // actually went out. The panel says so and never more.
+        visitorConfirmed: Boolean(data.visitorConfirmed),
+        reference: data.reference,
+      });
     } catch {
       setStatus({
         kind: "error",
@@ -186,16 +193,23 @@ export function BookingPanel() {
   if (status.kind === "booked") {
     return (
       <div className="border border-border-custom p-8 md:p-10" role="status">
-        <h3 className="font-display font-normal text-3xl text-foreground">
-          Booked.
-        </h3>
+        <h2 className="font-display font-normal text-3xl text-foreground">
+          {status.visitorConfirmed ? "You're booked." : "Request received."}
+        </h2>
         <p className="mt-4 text-sm text-foreground-secondary">
           {dayLabel(status.start, zone)} at {timeLabel(status.start, zone)} — your
           time ({zone.replace("_", " ")}).
         </p>
         <p className="mt-2 text-sm text-foreground-secondary">
-          A confirmation is on its way to your inbox.
+          {status.visitorConfirmed
+            ? "A confirmation has been sent to your email."
+            : "The studio has it. We will confirm the time by email."}
         </p>
+        {status.reference && (
+          <p className="mt-4 font-mono text-[0.7rem] uppercase tracking-[0.16em] text-foreground-secondary">
+            Ref {status.reference}
+          </p>
+        )}
       </div>
     );
   }
@@ -203,9 +217,9 @@ export function BookingPanel() {
   return (
     <div className="border border-border-custom min-w-0">
       <div className="flex items-baseline justify-between gap-4 border-b border-border-custom px-6 md:px-8 py-5">
-        <h3 className="font-mono text-xs uppercase tracking-[0.18em] text-foreground">
+        <h2 className="font-mono text-xs uppercase tracking-[0.18em] text-foreground">
           Book a 20-minute intro
-        </h3>
+        </h2>
         <span className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-foreground-secondary">
           No charge
         </span>
@@ -342,7 +356,7 @@ export function BookingPanel() {
                   required
                   autoComplete="name"
                   aria-invalid={status.kind === "error" && status.field === "name"}
-                  className="mt-2 w-full bg-transparent border-b border-border-custom py-2 text-foreground focus:border-foreground focus-visible:outline-none"
+                  className="mt-2 w-full bg-transparent border-b border-border-custom py-2 text-foreground focus:border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
                 />
               </label>
 
@@ -356,7 +370,7 @@ export function BookingPanel() {
                   required
                   autoComplete="email"
                   aria-invalid={status.kind === "error" && status.field === "email"}
-                  className="mt-2 w-full bg-transparent border-b border-border-custom py-2 text-foreground focus:border-foreground focus-visible:outline-none"
+                  className="mt-2 w-full bg-transparent border-b border-border-custom py-2 text-foreground focus:border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
                 />
               </label>
 
@@ -367,7 +381,7 @@ export function BookingPanel() {
                 <select
                   name="service"
                   defaultValue=""
-                  className="mt-2 w-full bg-transparent border-b border-border-custom py-2 text-foreground focus:border-foreground focus-visible:outline-none"
+                  className="mt-2 w-full bg-transparent border-b border-border-custom py-2 text-foreground focus:border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
                 >
                   <option value="" className="bg-surface text-foreground">
                     Not sure yet
@@ -387,7 +401,7 @@ export function BookingPanel() {
                 <input
                   name="note"
                   maxLength={1200}
-                  className="mt-2 w-full bg-transparent border-b border-border-custom py-2 text-foreground focus:border-foreground focus-visible:outline-none"
+                  className="mt-2 w-full bg-transparent border-b border-border-custom py-2 text-foreground focus:border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
                 />
               </label>
             </div>

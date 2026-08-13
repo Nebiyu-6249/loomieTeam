@@ -9,9 +9,12 @@
  * and which sector they belonged to.
  *
  * ── PLACEHOLDER CONTENT ──────────────────────────────────────────────────
- * Everything marked `status: "placeholder"` is standing in until real case
- * study material arrives. Replacing it means editing this file and nothing
- * else. Two rules held while writing it:
+ * Everything marked `status: "concept"` is standing in until real case study
+ * material arrives, and the site says so out loud: every one of these carries
+ * a "Concept study" label wherever it appears, on the card, in the archive and
+ * at the top of the study itself. A visitor should never have to guess whether
+ * a project on this page was commissioned. Replacing it means editing this
+ * file and nothing else. Two rules held while writing it:
  *
  *   No client is named. These are project titles, not company names, and no
  *   record claims a relationship with a real business. `sector` describes the
@@ -22,7 +25,16 @@
  *   must never do.
  */
 
-export type ProjectStatus = "placeholder" | "published";
+export type ProjectStatus = "concept" | "commissioned";
+
+/**
+ * What the badge says. One constant, so the wording cannot drift between the
+ * card, the archive row and the case study header.
+ */
+export const STATUS_LABEL: Record<ProjectStatus, string> = {
+  concept: "Concept study",
+  commissioned: "Client project",
+};
 
 export interface ProjectImage {
   src: string;
@@ -69,7 +81,10 @@ export const PROJECTS: Project[] = [
     },
     gallery: [
       { src: "/images/work/canopy.jpg", alt: "The building's roofline against a tree canopy" },
-      { src: "/images/work/concrete.jpg", alt: "Concrete beams meeting at an angle" },
+      {
+        src: "/images/work/sheet-grid.jpg",
+        alt: "The drawing grid the identity and the website are both set on",
+      },
       { src: "/images/work/structure-tall.jpg", alt: "The building's full elevation" },
     ],
     brief:
@@ -78,7 +93,7 @@ export const PROJECTS: Project[] = [
       "The identity was taken from the drawings rather than applied over them: the same line weights, the same annotation, the same margins. The website is built on that grid, so a project page and a drawing sheet are recognisably the same document.",
     outcome:
       "One system across drawings, print and the site. New work enters it without a redesign.",
-    status: "placeholder",
+    status: "concept",
   },
   {
     slug: "ferrous",
@@ -98,7 +113,10 @@ export const PROJECTS: Project[] = [
     },
     gallery: [
       { src: "/images/work/concrete.jpg", alt: "Concrete beams meeting at an angle" },
-      { src: "/images/work/form.jpg", alt: "The sculpture seen from the front" },
+      {
+        src: "/images/work/sheet-mark.jpg",
+        alt: "The mark on its construction geometry, with the aperture radius marked",
+      },
     ],
     brief:
       "A maker working in steel and cast aluminium needed a mark that could be physically applied to the objects, not only printed beside them.",
@@ -106,35 +124,41 @@ export const PROJECTS: Project[] = [
       "The mark was drawn at the size of a stamp first and scaled up afterwards, which is the opposite of the usual order and the reason it holds at twelve millimetres. Packaging uses uncoated board and a single ink.",
     outcome:
       "One mark, stamped into metal and printed on board, with no second version needed for small sizes.",
-    status: "placeholder",
+    status: "concept",
   },
   {
     slug: "signal",
     index: "03",
     title: "Signal",
-    sector: "Audio hardware",
+    sector: "Software product",
     year: "2026",
     disciplines: ["Digital identity", "Website"],
-    summary: "Interface and packaging drawn from the same set of parts.",
+    summary: "Interface and marketing drawn from the same set of parts.",
     cover: {
-      src: "/images/work/surface.jpg",
-      alt: "Vintage audio and computing hardware under directional light",
+      src: "/images/work/sheet-structure.jpg",
+      alt: "A page structure diagram: regions blocked out and annotated",
     },
     hero: {
-      src: "/images/work/surface.jpg",
-      alt: "Vintage audio and computing hardware under directional light",
+      src: "/images/work/sheet-grid.jpg",
+      alt: "A twelve-column layout grid with a page part-placed on it",
     },
     gallery: [
-      { src: "/images/work/keys.jpg", alt: "A close crop of keys and controls" },
-      { src: "/images/work/surface.jpg", alt: "The hardware arranged on a surface" },
+      {
+        src: "/images/work/sheet-type.jpg",
+        alt: "A type specimen showing the display face at three sizes",
+      },
+      {
+        src: "/images/work/sheet-tone.jpg",
+        alt: "A tonal ramp running from deep blue to warm off-white",
+      },
     ],
     brief:
-      "Hardware and software that had been designed by different people at different times, and looked it.",
+      "A product whose marketing site and application had been designed by different people at different times, and looked it.",
     approach:
-      "A single component set — one type scale, one control geometry, one spacing unit — used for the physical panel, the screen interface and the box. The website documents the set rather than describing it.",
+      "A single component set — one type scale, one spacing unit, one tonal ramp — used for the interface, the site and the documentation. The system is published rather than described, so a new screen starts from it instead of beside it.",
     outcome:
-      "A product that reads as one object from the shelf to the settings screen.",
-    status: "placeholder",
+      "A product that reads as one thing from the landing page to the settings screen.",
+    status: "concept",
   },
   {
     slug: "marne",
@@ -154,7 +178,10 @@ export const PROJECTS: Project[] = [
     },
     gallery: [
       { src: "/images/work/structure.jpg", alt: "The building at dusk" },
-      { src: "/images/work/canopy.jpg", alt: "A roofline framed by branches" },
+      {
+        src: "/images/work/sheet-type.jpg",
+        alt: "The single weight everything on the site is set in",
+      },
     ],
     brief:
       "Strong photography arriving in inconsistent crops, sizes and colour, and a site that flattened all of it.",
@@ -162,7 +189,7 @@ export const PROJECTS: Project[] = [
       "A fixed set of frames and one grade, applied on the way in. Everything else on the page is set in one weight so nothing competes with the image.",
     outcome:
       "A site where the work is the only thing asking for attention.",
-    status: "placeholder",
+    status: "concept",
   },
   {
     slug: "quarry",
@@ -182,7 +209,10 @@ export const PROJECTS: Project[] = [
     },
     gallery: [
       { src: "/images/work/form.jpg", alt: "A cast form seen against concrete" },
-      { src: "/images/work/concrete.jpg", alt: "A close crop of concrete" },
+      {
+        src: "/images/work/sheet-tone.jpg",
+        alt: "The tonal range the literature is printed within",
+      },
     ],
     brief:
       "Sales material that specifiers were ignoring because it read as promotion rather than information.",
@@ -190,24 +220,28 @@ export const PROJECTS: Project[] = [
       "The literature was rebuilt around the tables people actually use, with photography as evidence rather than decoration. Nothing is set larger than it needs to be.",
     outcome:
       "Material that gets kept on the desk instead of filed.",
-    status: "placeholder",
+    status: "concept",
   },
 ];
 
 export const getProject = (slug: string) =>
   PROJECTS.find((project) => project.slug === slug);
 
-/** The homepage shows three. The archive shows everything. */
-export const SELECTED_PROJECTS = PROJECTS.slice(0, 3);
-
 /**
- * The one the hero leads with.
+ * The homepage shows three. The archive shows all five.
  *
- * Deliberately not SELECTED_PROJECTS[0]: the hero and the first study sit
- * within one scroll of each other, and showing the same photograph twice in
- * that distance makes the archive look thinner than it is.
+ * Both numbers are decisions rather than accidents. Three is what fits the
+ * homepage's rhythm — wide, narrow, wide — without the section turning into a
+ * grid; five is enough for an archive to have a shape and few enough that
+ * every one of them earns a distinct cover image. Nothing counts these
+ * anywhere else, so adding a sixth project means editing PROJECTS and nothing
+ * else.
+ *
+ * The hero deliberately takes none of them. It leads with the studio's own
+ * brand sheet instead, so the first study a visitor sees is in Selected Work
+ * rather than spent above it.
  */
-export const HERO_PROJECT = PROJECTS[1];
+export const SELECTED_PROJECTS = PROJECTS.slice(0, 3);
 
 /** Wraps, so the last case study leads back to the first. */
 export function nextProject(slug: string): Project {

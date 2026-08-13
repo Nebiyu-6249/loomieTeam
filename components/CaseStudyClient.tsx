@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import type { Project } from "@/lib/projects";
+import { STATUS_LABEL, type Project } from "@/lib/projects";
 
 /**
  * A case study, set as an article rather than a dashboard.
@@ -34,9 +34,16 @@ export function CaseStudyClient({
       <section className="pt-32 md:pt-40 px-6 md:px-12 max-w-[1700px] mx-auto">
         <div className="grid grid-cols-12 gap-x-8 gap-y-8 items-end">
           <div className="col-span-12 lg:col-span-7">
-            <span className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-foreground-secondary">
-              {project.index} — {project.sector}
-            </span>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-[0.7rem] uppercase tracking-[0.18em] text-foreground-secondary">
+              <span>
+                {project.index} — {project.sector}
+              </span>
+              {/* Said at the top, not in a footnote. A visitor should know
+                  what they are reading before they read it. */}
+              <span className="border border-border-custom px-2 py-1 text-foreground">
+                {STATUS_LABEL[project.status]}
+              </span>
+            </div>
             <h1 className="mt-5 font-display font-normal text-[13vw] sm:text-7xl lg:text-8xl leading-[0.88] tracking-[-0.03em] text-foreground">
               {project.title}
             </h1>

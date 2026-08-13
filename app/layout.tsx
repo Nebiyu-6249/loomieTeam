@@ -48,28 +48,28 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
   ),
-  title: "LOOMIE — Design That Connects",
+  title: "Loomie — Brand Identity & Digital Design Studio",
   description:
-    "LOOMIE is a premium design & technology studio specializing in kinetic web development, brutalist spatial concepts, and digital branding.",
+    "Loomie builds brand identities, digital systems and websites designed to stay coherent across every touchpoint.",
   icons: {
     icon: "/icon.svg",
     shortcut: "/icon.svg",
     apple: "/icon.svg",
   },
   openGraph: {
-    title: "LOOMIE — Design That Connects",
+    title: "Loomie — Brand Identity & Digital Design Studio",
     description:
-      "LOOMIE is a premium design & technology studio specializing in kinetic web development, brutalist spatial concepts, and digital branding.",
+      "Loomie builds brand identities, digital systems and websites designed to stay coherent across every touchpoint.",
     url: "/",
-    siteName: "LOOMIE Studio",
+    siteName: "Loomie",
     locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "LOOMIE — Design That Connects",
+    title: "Loomie — Brand Identity & Digital Design Studio",
     description:
-      "LOOMIE is a premium design & technology studio specializing in kinetic web development, brutalist spatial concepts, and digital branding.",
+      "Loomie builds brand identities, digital systems and websites designed to stay coherent across every touchpoint.",
   },
 };
 
