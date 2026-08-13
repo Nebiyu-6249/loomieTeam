@@ -5,8 +5,10 @@
  * clauses; the visual does that job better, and a homepage that reads like a
  * proposal document is a homepage nobody finishes.
  *
- * Imagery is drawn from the same graded set as the work, so a service and a
- * project look like they came out of the same studio.
+ * Imagery is the studio's own system plates — the mark, the type, the grid,
+ * the tonal ramp — with one photograph among them. The split is deliberate:
+ * the work section shows what was made, this section shows what it was made
+ * out of, and between them no image appears twice on the homepage.
  */
 
 export interface Service {
@@ -25,8 +27,8 @@ export const SERVICES: Service[] = [
     title: "Identity",
     summary: "A mark that holds at twelve millimetres and at twelve metres.",
     image: {
-      src: "/images/work/form.jpg",
-      alt: "A faceted metal form casting hard shadows",
+      src: "/images/work/sheet-type.jpg",
+      alt: "A type specimen sheet showing the display face at three sizes",
     },
     span: "tall",
   },
@@ -36,8 +38,8 @@ export const SERVICES: Service[] = [
     summary:
       "A practical system for type, colour, layout and digital application.",
     image: {
-      src: "/images/work/keys.jpg",
-      alt: "A close crop of controls and keys",
+      src: "/images/work/sheet-tone.jpg",
+      alt: "A tonal ramp running from deep blue through to warm off-white",
     },
     span: "square",
   },
@@ -56,8 +58,8 @@ export const SERVICES: Service[] = [
     title: "Websites",
     summary: "Fast, legible, and still standing after the tenth new page.",
     image: {
-      src: "/images/work/structure.jpg",
-      alt: "A low building seen through trees",
+      src: "/images/work/sheet-grid.jpg",
+      alt: "A twelve-column layout grid with a page part-placed on it",
     },
     span: "wide",
   },

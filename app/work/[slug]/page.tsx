@@ -23,13 +23,13 @@ export async function generateMetadata({
   const { slug } = await params;
   const project = getProject(slug);
 
-  if (!project) return { title: "Not found — LOOMIE" };
+  if (!project) return { title: "Not found — Loomie" };
 
   return {
-    title: `${project.title} — LOOMIE`,
+    title: `${project.title} — Loomie`,
     description: project.summary,
     openGraph: {
-      title: `${project.title} — LOOMIE`,
+      title: `${project.title} — Loomie`,
       description: project.summary,
       images: [{ url: project.hero.src }],
     },

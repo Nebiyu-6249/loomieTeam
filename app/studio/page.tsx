@@ -6,9 +6,9 @@ import { ThreeMeanings } from "@/components/ThreeMeanings";
 import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "Studio — LOOMIE",
+  title: "Studio — Loomie",
   description:
-    "How LOOMIE works, what the studio holds to, and how the mark is built.",
+    "How Loomie works, what the studio holds to, and how the mark is built.",
 };
 
 export default function StudioPage() {

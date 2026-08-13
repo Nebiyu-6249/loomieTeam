@@ -47,23 +47,25 @@ export function StorySection() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 mt-16 items-start">
         <div className="lg:col-span-6">
-          <div className="w-full aspect-[4/5] relative overflow-hidden rounded-none bg-surface-card border border-border-custom shadow-2xl">
+          {/* No border, no shadow and no gradient scrim: nowhere else on the
+              site is an image put in a card, and the scrim was darkening a
+              plate that has nothing in its lower third to darken. */}
+          <div className="w-full aspect-[4/5] relative overflow-hidden bg-surface-card">
             <Image
-              src="/images/work/keys.jpg"
-              alt="LOOMIE studio process"
+              src="/images/work/sheet-structure.jpg"
+              alt="A page structure sheet: the regions of a page blocked out and annotated before anything is designed"
               fill
               loading="lazy"
-              quality={80}
+              quality={82}
               sizes="(max-width: 1024px) 100vw, 50vw"
-              className="object-cover rounded-none"
+              className="object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
           </div>
         </div>
 
         <div className="lg:col-span-6 flex flex-col">
           <p className="text-base sm:text-lg text-foreground-secondary leading-relaxed mb-12 max-w-xl">
-            LOOMIE is a small design studio. The work is brand identity and the
+            Loomie is a small design studio. The work is brand identity and the
             websites that carry it. There is no account layer between you and
             the people doing the work, which is the main reason things move.
           </p>

@@ -44,7 +44,7 @@ const ARCHIVE_PIECES = [
     id: "p1",
     title: "Type specimen",
     medium: "Print / Variable type",
-    image: "/images/work/keys.jpg",
+    image: "/images/work/sheet-type.jpg",
     span: "md:col-span-5",
     aspect: "aspect-[3/4]",
     offset: "",

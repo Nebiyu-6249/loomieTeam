@@ -10,9 +10,9 @@ import { LoomieLogoMark } from "./LoomieLogoMark";
 /**
  * The footer, with the theatre removed.
  *
- * It used to carry a 540px banner of the purple CGI gradient, a badge reading
- * "LOOMIE KINETIC ENGINE", an "EST. 2026" stamp, and a headline promising to
- * build something extraordinary. None of it was information. What a footer
+ * It used to carry a 540px banner of the purple CGI gradient, a badge naming
+ * a nonexistent engine, an establishment date and a headline promising
+ * something extraordinary. None of it was information. What a footer
  * owes the visitor is a way to get in touch, a way to get to the other pages,
  * and the studio's name — so that is what is here.
  *
@@ -24,14 +24,17 @@ const NAVIGATION = [
   { href: "/work", label: "Work" },
   { href: "/services", label: "Services" },
   { href: "/studio", label: "Studio" },
-  { href: "/clients", label: "Clients" },
+  { href: "/clients", label: "Who we work with" },
 ];
 
-const ELSEWHERE = [
-  { href: "https://twitter.com", label: "X / Twitter" },
-  { href: "https://instagram.com", label: "Instagram" },
-  { href: "https://linkedin.com", label: "LinkedIn" },
-];
+/**
+ * ── PLACEHOLDER ─────────────────────────────────────────────────────────
+ * Loomie's real social accounts have not been supplied. Linking to
+ * instagram.com and linkedin.com as though they were the studio's own is a
+ * broken promise on every click, so the list is empty and the column is not
+ * rendered. Add the real URLs here and it comes back.
+ */
+const ELSEWHERE: { href: string; label: string }[] = [];
 
 export function Footer() {
   const wordmarkRef = useRef<HTMLParagraphElement>(null);
@@ -123,6 +126,7 @@ export function Footer() {
             </ul>
           </nav>
 
+          {ELSEWHERE.length > 0 && (
           <div className="col-span-6 lg:col-span-2">
             <h3 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-foreground-secondary mb-5">
               Elsewhere
@@ -142,6 +146,7 @@ export function Footer() {
               ))}
             </ul>
           </div>
+          )}
         </div>
 
         {/* The wordmark, with the mark standing in for the double O. */}
@@ -157,7 +162,7 @@ export function Footer() {
 
         <div className="mt-12 pt-6 border-t border-border-custom flex flex-wrap items-center justify-between gap-4 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-foreground-secondary">
           <span>© {new Date().getFullYear()} Loomie Studio</span>
-          <span>Tokyo / London / NYC</span>
+          <span>Working remotely, worldwide</span>
         </div>
       </div>
     </footer>

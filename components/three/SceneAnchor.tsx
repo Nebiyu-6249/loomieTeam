@@ -33,16 +33,19 @@ export function SceneAnchor({
 
     const measure = () => {
       const rect = element.getBoundingClientRect();
+      const viewportHeight = Math.max(window.innerHeight, 1);
+      const onScreen =
+        Math.max(0, Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0)) /
+        Math.max(rect.height, 1);
+
       publishAnchor(id, {
         centreX: rect.left + rect.width / 2,
         centreY: rect.top + rect.height / 2,
         width: rect.width,
         height: rect.height,
         // How far the anchor has travelled up and out of the viewport.
-        faded: Math.min(
-          Math.max(-rect.bottom / Math.max(window.innerHeight, 1), 0) * 2,
-          1
-        ),
+        faded: Math.min(Math.max(-rect.bottom / viewportHeight, 0) * 2, 1),
+        presence: Math.min(Math.max(onScreen, 0), 1),
         visible,
       });
       frame = requestAnimationFrame(measure);

@@ -17,13 +17,25 @@ import path from "node:path";
  * photography rather than a filter. That is the snow-to-river palette applied
  * to the imagery instead of only to the interface.
  *
- * Three sources were removed from the repository rather than graded.
+ * Four sources were removed from the repository rather than graded.
  * project-packaging.jpg photographed another company's product, logo and all;
  * project-editorial.jpg was a laptop displaying a different studio's copy; and
  * hero-3d-fluid.jpg was a purple-to-teal CGI gradient, which is the clearest
  * tell on the avoid-list and the one image this grade could not rescue — at
  * the settings that pull concrete and architecture into one tonality it still
  * came back with twice every other image's channel spread.
+ *
+ * project-digital.jpg went last, and it should have gone first: a desk of
+ * vintage computing gear with "commodore", its C= logo, "CBM", "Model 8032"
+ * and "Nintendo GAME BOY" all legible in frame. A studio that sells identity
+ * work cannot show another company's trademarks as its own portfolio. It was
+ * also the one source this grade never took — it still came back carrying the
+ * original magenta cast, at roughly three times the channel spread of the
+ * others, which is the measurement that should have caught it.
+ *
+ * That leaves two photographic sources. The rest of the imagery is drawn
+ * instead, from the studio's own type, mark and palette — see
+ * scripts/make-artefacts.mjs.
  *
  * Run: npm run grade-images
  */
@@ -63,8 +75,7 @@ const RENDITIONS = [
   { name: "form-wide", source: "project-minimal.jpg", width: 2000, height: 1250 },
   { name: "structure", source: "project-spatial.jpg", width: 2000, height: 1250 },
   { name: "structure-tall", source: "project-spatial.jpg", width: 1400, height: 1750 },
-  { name: "surface", source: "project-digital.jpg", width: 2000, height: 1250 },
-  // Close crops. Three sources cannot carry a portfolio at one framing each,
+  // Close crops. Two sources cannot carry a portfolio at one framing each,
   // and a tight detail of a material is a different photograph from the wide
   // shot it came out of — which is how a real archive gets its rhythm.
   {
@@ -73,13 +84,6 @@ const RENDITIONS = [
     region: { left: 0.0, top: 0.0, width: 0.52, height: 0.52 },
     width: 1500,
     height: 1500,
-  },
-  {
-    name: "keys",
-    source: "project-digital.jpg",
-    region: { left: 0.52, top: 0.0, width: 0.48, height: 0.74 },
-    width: 1400,
-    height: 1750,
   },
   {
     name: "canopy",

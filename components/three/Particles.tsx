@@ -50,6 +50,7 @@ const VERTEX_SHADER = /* glsl */ `
   uniform float uProgress;
   uniform float uForm;
   uniform float uHandoff;
+  uniform float uPresence;
   uniform float uSize;
   uniform float uDepthScale;
   uniform vec3 uMarkScale;
@@ -137,7 +138,14 @@ const VERTEX_SHADER = /* glsl */ `
 
     // The mark is solid; the field is not. Fade the difference rather than
     // cutting between them.
-    float fieldAlpha = aSeed.z * (0.5 + 0.3 * t + 0.35 * l);
+    // Scaled by how much of the section is still on screen. The canvas is one
+    // fixed layer over the whole viewport, so a field that is merely dimmer
+    // still paints across whatever has scrolled up underneath it — the curve
+    // has to reach zero while the section is still mostly there, not when it
+    // finally leaves. Full strength while the section owns the viewport, gone
+    // by the time it is down to half of it.
+    float presence = smoothstep(0.5, 0.96, uPresence);
+    float fieldAlpha = aSeed.z * (0.5 + 0.3 * t + 0.35 * l) * presence;
     vAlpha = mix(0.35 + 0.65 * form, fieldAlpha, uHandoff);
   }
 `;
@@ -200,6 +208,7 @@ export function Particles() {
       uProgress: { value: 0 },
       uForm: { value: 0 },
       uHandoff: { value: 1 },
+      uPresence: { value: 1 },
       // World units. About two and a half CSS pixels at the camera's distance.
       uSize: { value: capabilities.mobile ? 0.034 : 0.03 },
       uDepthScale: { value: 1 },
@@ -275,6 +284,9 @@ export function Particles() {
     shader.uniforms.uProgress.value = progress;
     shader.uniforms.uForm.value = loader.form;
     shader.uniforms.uHandoff.value = loader.handoff;
+    // The loader owns the whole screen, so it is exempt; the scroll state is
+    // confined to its section.
+    shader.uniforms.uPresence.value = owned ? 1 : (anchor?.presence ?? 0);
     shader.uniforms.uDepthScale.value =
       state.gl.getPixelRatio() * size.height * 0.5;
 
