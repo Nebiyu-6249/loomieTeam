@@ -75,7 +75,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       {children}
       <button
         onClick={(e) => toggleTheme(e)}
-        className="fixed bottom-8 right-8 z-[9999] p-4 rounded-none bg-surface-card/90 backdrop-blur-md border border-border-custom text-foreground shadow-2xl transition-all duration-300 hover:scale-110 hover:border-foreground group select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+        className="fixed bottom-8 right-8 z-[9999] p-4 rounded-none bg-surface-card border border-border-custom text-foreground shadow-2xl transition-all duration-300 hover:border-foreground hover:border-foreground group select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
         aria-label="Toggle Light / Dark Theme"
         data-cursor="hover"
       >

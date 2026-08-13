@@ -9,7 +9,15 @@ import {
   MARK_PIXELS_DESKTOP,
   MARK_PIXELS_MOBILE,
 } from "./particleField";
-import { acquireFrames, markSceneDrawing, readLoader } from "./sceneStore";
+import {
+  acquireFrames,
+  loaderOwnsField,
+  markSceneDrawing,
+  readAnchor,
+  readLoader,
+  readProgress,
+  subscribeLoader,
+} from "./sceneStore";
 
 /**
  * A3 — suspended snow to directional flow, and the field A10 hands over.
@@ -28,7 +36,10 @@ import { acquireFrames, markSceneDrawing, readLoader } from "./sceneStore";
  * tab, which Scene handles.
  */
 
-/** Cold at the snow end, gold at the river end, per theme. */
+/** The section the field belongs to. It draws nowhere else. */
+const SECTION_ID = "state";
+
+/** Cold at the snow end, gold at the light end, per theme. */
 const PALETTE = {
   dark: { cold: "#CBDDF0", warm: "#E8DFA0" },
   light: { cold: "#5B7DA6", warm: "#7C6B1F" },
@@ -63,22 +74,35 @@ const VERTEX_SHADER = /* glsl */ `
     snow.x += sin(uTime * 0.24 + phase) * 0.006;
     snow.y += cos(uTime * 0.18 + phase) * 0.009;
 
-    // Each particle leaves at its own moment, so the field aligns over a
-    // stretch of scroll instead of snapping together on one frame.
-    float lead = aSeed.y * 0.4;
-    float t = clamp((uProgress - lead) / 0.55, 0.0, 1.0);
+    // Snow to river across the first half of the section, river to light
+    // across the second. Each particle leaves at its own moment, so the field
+    // gathers over a stretch of scroll rather than snapping on one frame.
+    float lead = aSeed.y * 0.22;
+    float t = clamp((uProgress * 2.0 - lead) / 0.9, 0.0, 1.0);
     t = t * t * (3.0 - 2.0 * t);
+
+    float l = clamp((uProgress - 0.5) * 2.0 - lead, 0.0, 1.0);
+    l = l * l * (3.0 - 2.0 * l);
 
     // Once in the river the points travel along it rather than sitting in it.
     vec3 river = aRiver;
     river.x += sin(uTime * 0.42 + phase) * 0.012;
     river.y += cos(uTime * 0.33 + phase) * 0.006;
 
-    vec3 scrollPos = mix(snow, river, t);
+    // Light: the river flattens into a band and comes forward. Derived from
+    // the river rather than stored, because a third position buffer for a
+    // state this simple is a megabyte nobody needs to download.
+    vec3 light = vec3(
+      aRiver.x * 0.92,
+      aRiver.y * 0.3 + 0.04 + sin(uTime * 0.3 + phase) * 0.01,
+      aRiver.z * 0.35 + 0.12
+    );
 
-    // They fall on the way. The bow peaks mid-transition and is gone at both
-    // ends, which is what turns a straight interpolation into weight.
-    float bow = t * (1.0 - t) * 4.0;
+    vec3 scrollPos = mix(mix(snow, river, t), light, l);
+
+    // They fall on the way into the river. The bow peaks mid-transition and
+    // is gone at both ends, which is what turns an interpolation into weight.
+    float bow = t * (1.0 - t) * 4.0 * (1.0 - l);
     scrollPos.y -= bow * (0.10 + aSeed.y * 0.14);
 
     // The loader: scattered, flying in, freezing into the mark.
@@ -103,16 +127,17 @@ const VERTEX_SHADER = /* glsl */ `
     // given depth. Feeding a pixel count in here instead gives points several
     // hundred pixels across, and eight thousand of those will stall a
     // software rasteriser outright.
-    float size = uSize * (0.45 + aSeed.z);
+    // Points grow a little into the light state, which is what makes the last
+    // stretch read as arriving rather than as more of the same drifting.
+    float size = uSize * (0.45 + aSeed.z) * (1.0 + l * 0.5);
     gl_PointSize = size * uDepthScale / max(-mvPosition.z, 0.001);
 
-    // Cold where it is snow, warm where it is river, exactly as the page's
-    // own accent strength does.
-    vColor = mix(uCold, uWarm, clamp(t * 0.85 + uProgress * 0.15, 0.0, 1.0));
+    // Cold as snow, warming through the river, fully warm in the light.
+    vColor = mix(uCold, uWarm, clamp(t * 0.6 + l * 0.4, 0.0, 1.0));
 
     // The mark is solid; the field is not. Fade the difference rather than
     // cutting between them.
-    float fieldAlpha = aSeed.z * (0.55 + 0.45 * t);
+    float fieldAlpha = aSeed.z * (0.5 + 0.3 * t + 0.35 * l);
     vAlpha = mix(0.35 + 0.65 * form, fieldAlpha, uHandoff);
   }
 `;
@@ -186,9 +211,26 @@ export function Particles() {
 
   useEffect(() => () => geometry.dispose(), [geometry]);
 
-  // The whole page is its section, so it wants frames for as long as it is on
-  // the page.
-  useEffect(() => acquireFrames(), []);
+  /**
+   * Frames are held only while the loader owns the field. After the handoff
+   * the StateSection's anchor holds the lease, so the canvas runs for one
+   * screen of the site instead of all of it — the field used to be permanent
+   * wallpaper behind every page, which is both a battery cost and the reason
+   * the work pages looked like a starfield.
+   */
+  useEffect(() => {
+    if (!loaderOwnsField()) return;
+
+    const release = acquireFrames();
+    const unsubscribe = subscribeLoader(() => {
+      if (!loaderOwnsField()) release();
+    });
+
+    return () => {
+      release();
+      unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const applyTheme = () => {
@@ -218,14 +260,16 @@ export function Particles() {
     // rebuild of four buffers.
     node.scale.set(viewport.width, viewport.height, viewport.height);
 
-    const scrollable =
-      document.documentElement.scrollHeight - window.innerHeight;
-    const progress =
-      scrollable <= 0
-        ? 0
-        : Math.min(Math.max(window.scrollY / scrollable, 0), 1);
-
     const loader = readLoader();
+    const anchor = readAnchor(SECTION_ID);
+    const owned = loader.handoff < 1;
+
+    // Snow lives in one section now, not behind the whole document. Outside
+    // it there is nothing to draw and nothing to compute.
+    node.visible = owned || Boolean(anchor?.visible);
+    if (!node.visible) return;
+
+    const progress = owned ? 0 : readProgress(SECTION_ID);
 
     shader.uniforms.uTime.value = state.clock.elapsedTime;
     shader.uniforms.uProgress.value = progress;

@@ -49,7 +49,7 @@ export function StorySection() {
         <div className="lg:col-span-6">
           <div className="w-full aspect-[4/5] relative overflow-hidden rounded-none bg-surface-card border border-border-custom shadow-2xl">
             <Image
-              src="/images/project-editorial.jpg"
+              src="/images/work/keys.jpg"
               alt="LOOMIE studio process"
               fill
               loading="lazy"

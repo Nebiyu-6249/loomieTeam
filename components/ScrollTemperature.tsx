@@ -67,18 +67,12 @@ const write = (progress: number) => {
   }
 
   root.style.setProperty("--accent-strength", progress.toFixed(3));
-  // Grain thickens toward the river end, barely.
-  root.style.setProperty(
-    "--grain-opacity",
-    (0.022 + progress * 0.026).toFixed(4)
-  );
 };
 
 const clearWrites = () => {
   const root = document.documentElement;
   for (const key of RAMP_KEYS) root.style.removeProperty(CSS_VARIABLE[key]);
   root.style.removeProperty("--accent-strength");
-  root.style.removeProperty("--grain-opacity");
 };
 
 export function ScrollTemperature() {

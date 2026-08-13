@@ -11,9 +11,6 @@ import {
   subscribeFrames,
   subscribeLoader,
 } from "./sceneStore";
-import { ExplodedPlates } from "./ExplodedPlates";
-import { GradientEnvironment } from "./GradientEnvironment";
-import { HeroLenses } from "./HeroLenses";
 import { Particles } from "./Particles";
 
 /**
@@ -70,7 +67,17 @@ export default function Scene() {
       data-scene-running={running ? "true" : "false"}
       aria-hidden="true"
       className="fixed inset-0 pointer-events-none"
-      style={{ zIndex: duringLoader ? LOADER_LAYER : PAGE_LAYER }}
+      /*
+        Hidden whenever the loop is stopped. A canvas with frameloop "never"
+        does not go blank — it keeps presenting whatever it drew last, so the
+        particle field stayed frozen on screen behind every section after the
+        loader dispersed it, which is exactly the permanent starfield this
+        pass set out to remove.
+      */
+      style={{
+        zIndex: duringLoader ? LOADER_LAYER : PAGE_LAYER,
+        visibility: running ? "visible" : "hidden",
+      }}
     >
       <Canvas
         // Never full resolution on a 3x display.
@@ -85,11 +92,7 @@ export default function Scene() {
         camera={{ position: [0, 0, 6], fov: 42 }}
         style={{ pointerEvents: "none" }}
       >
-        {/* Direct child of Canvas so attach targets the scene. */}
-        <GradientEnvironment />
         <Particles />
-        <HeroLenses />
-        <ExplodedPlates />
       </Canvas>
     </div>
   );

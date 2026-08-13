@@ -1,199 +1,136 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowUpRight } from "lucide-react";
-import type { ProjectDetail } from "@/app/work/[slug]/page";
+import type { Project } from "@/lib/projects";
 
-const SECTIONS = [
-  { key: "challenge", number: "01", label: "The Challenge" },
-  { key: "solution", number: "02", label: "The Solution" },
-  { key: "impact", number: "03", label: "The Impact" },
+/**
+ * A case study, set as an article rather than a dashboard.
+ *
+ * The previous version opened with "Case Study / 2026" over a numbered
+ * three-part structure — The Challenge, The Solution, The Impact — each
+ * carrying a paragraph that announced itself as placeholder. The structure is
+ * the same because it is the right structure; the labels are quieter and the
+ * copy is now written to be read.
+ */
+
+const PARTS = [
+  { key: "brief", label: "Brief" },
+  { key: "approach", label: "Approach" },
+  { key: "outcome", label: "Outcome" },
 ] as const;
 
-export function CaseStudyClient({ project }: { project: ProjectDetail }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const heroImageRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    gsap.registerPlugin(ScrollTrigger);
-
-    const mm = gsap.matchMedia();
-
-    const ctx = gsap.context(() => {
-      mm.add("(prefers-reduced-motion: no-preference)", () => {
-        if (heroImageRef.current) {
-          gsap.fromTo(
-            heroImageRef.current,
-            { scale: 1.08 },
-            {
-              scale: 1,
-              ease: "none",
-              scrollTrigger: {
-                trigger: heroImageRef.current,
-                start: "top top",
-                end: "bottom top",
-                scrub: 0.6,
-              },
-            }
-          );
-        }
-      });
-    }, containerRef);
-
-    return () => {
-      mm.revert();
-      ctx.revert();
-    };
-  }, []);
-
+export function CaseStudyClient({
+  project,
+  next,
+}: {
+  project: Project;
+  next: Project;
+}) {
   return (
-    <div ref={containerRef}>
-      {/* Hero */}
-      <section className="pt-36 md:pt-44 px-6 md:px-12 max-w-[1700px] mx-auto">
-        <span className="text-xs font-mono font-bold uppercase tracking-widest text-foreground-secondary block mb-6">
-          Case Study / {project.year}
-        </span>
-
-        <h1 className="font-display font-normal text-5xl sm:text-7xl md:text-8xl tracking-[-0.025em] text-foreground leading-[0.9] max-w-5xl">
-          {project.title}
-        </h1>
-
-        <p className="mt-6 text-base sm:text-lg text-foreground-secondary max-w-2xl leading-relaxed">
-          {project.subtitle}
-        </p>
-
-        <div className="w-full aspect-[16/9] relative overflow-hidden rounded-none bg-surface-card border border-border-custom shadow-2xl mt-14">
-          <div ref={heroImageRef} className="absolute inset-0">
-            <Image
-              src={project.heroImage}
-              alt={project.title}
-              fill
-              priority
-              quality={85}
-              sizes="(max-width: 1700px) 100vw, 1700px"
-              className="object-cover rounded-none"
-            />
+    <div>
+      <section className="pt-32 md:pt-40 px-6 md:px-12 max-w-[1700px] mx-auto">
+        <div className="grid grid-cols-12 gap-x-8 gap-y-8 items-end">
+          <div className="col-span-12 lg:col-span-7">
+            <span className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-foreground-secondary">
+              {project.index} — {project.sector}
+            </span>
+            <h1 className="mt-5 font-display font-normal text-[13vw] sm:text-7xl lg:text-8xl leading-[0.88] tracking-[-0.03em] text-foreground">
+              {project.title}
+            </h1>
           </div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent pointer-events-none" />
+
+          <dl className="col-span-12 lg:col-span-4 lg:col-start-9 flex flex-wrap gap-x-10 gap-y-4 font-mono text-[0.7rem] uppercase tracking-[0.16em] text-foreground-secondary">
+            <div>
+              <dt className="text-foreground-secondary">Year</dt>
+              <dd className="mt-1 text-foreground">{project.year}</dd>
+            </div>
+            <div>
+              <dt className="text-foreground-secondary">Disciplines</dt>
+              <dd className="mt-1 text-foreground">{project.disciplines.join(" · ")}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="relative mt-12 md:mt-16 w-full aspect-[16/9] overflow-hidden bg-surface-card">
+          <Image
+            src={project.hero.src}
+            alt={project.hero.alt}
+            fill
+            priority
+            quality={84}
+            sizes="100vw"
+            className="object-cover"
+          />
         </div>
       </section>
 
-      {/* Metadata strip */}
-      <section className="px-6 md:px-12 max-w-[1700px] mx-auto mt-14">
-        <dl className="grid grid-cols-1 md:grid-cols-3 border-y border-border-custom divide-y md:divide-y-0 md:divide-x divide-border-custom">
-          <div className="p-8 md:p-10">
-            <dt className="text-xs font-mono font-bold uppercase tracking-widest text-foreground-secondary">
-              Client
-            </dt>
-            <dd className="mt-3 text-lg md:text-xl font-bold text-foreground">
-              {project.client}
-            </dd>
-          </div>
-
-          <div className="p-8 md:p-10">
-            <dt className="text-xs font-mono font-bold uppercase tracking-widest text-foreground-secondary">
-              Year
-            </dt>
-            <dd className="mt-3 text-lg md:text-xl font-bold text-foreground font-mono">
-              {project.year}
-            </dd>
-          </div>
-
-          <div className="p-8 md:p-10">
-            <dt className="text-xs font-mono font-bold uppercase tracking-widest text-foreground-secondary">
-              Services
-            </dt>
-            <dd className="mt-3 flex flex-wrap gap-2">
-              {project.services.map((service) => (
-                <span
-                  key={service}
-                  className="px-3.5 py-1 rounded-none bg-surface-card border border-border-custom text-xs font-mono text-foreground-secondary"
-                >
-                  {service}
-                </span>
-              ))}
-            </dd>
-          </div>
-        </dl>
-      </section>
-
-      {/* Challenge / Solution / Impact */}
-      <section className="px-6 md:px-12 max-w-[1700px] mx-auto py-24 md:py-32">
-        <div className="flex flex-col gap-16 md:gap-24">
-          {SECTIONS.map((section) => (
-            <div
-              key={section.key}
-              className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start"
-            >
-              <div className="lg:col-span-4">
-                <span className="text-xs font-mono font-bold uppercase tracking-widest text-foreground-secondary block mb-3">
-                  {section.number} / {section.label}
-                </span>
-                <h2 className="text-3xl md:text-5xl font-black tracking-tighter uppercase text-foreground leading-tight">
-                  {section.label}
-                </h2>
-              </div>
-
-              <p className="lg:col-span-8 text-base md:text-lg text-foreground-secondary leading-relaxed max-w-3xl">
-                {project[section.key]}
+      <section className="px-6 md:px-12 max-w-[1700px] mx-auto py-20 md:py-28">
+        <div className="grid grid-cols-12 gap-x-8 gap-y-12">
+          {PARTS.map((part) => (
+            <div key={part.key} className="col-span-12 md:col-span-4">
+              <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-foreground-secondary">
+                {part.label}
+              </h2>
+              <p className="mt-4 text-base leading-snug text-foreground-secondary max-w-sm">
+                {project[part.key]}
               </p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Gallery */}
-      <section className="px-6 md:px-12 max-w-[1700px] mx-auto pb-24 md:pb-32">
-        <span className="text-xs font-mono font-bold uppercase tracking-widest text-foreground-secondary block mb-8">
-          04 / Gallery
-        </span>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
-          {project.gallery.map((item, index) => (
+      <section className="px-6 md:px-12 max-w-[1700px] mx-auto pb-20 md:pb-28">
+        <div className="grid grid-cols-12 gap-8">
+          {project.gallery.map((image, index) => (
             <figure
-              key={`${item.src}-${index}`}
-              className="group flex flex-col"
+              key={image.src + index}
+              className={index === 0 ? "col-span-12 md:col-span-8" : "col-span-12 md:col-span-4"}
             >
-              <div className="w-full aspect-[4/3] relative overflow-hidden rounded-none bg-surface-card border border-border-custom shadow-xl transition-colors duration-500 group-hover:border-foreground">
+              <div className="relative w-full aspect-[4/3] overflow-hidden bg-surface-card">
                 <Image
-                  src={item.src}
-                  alt={item.caption}
+                  src={image.src}
+                  alt={image.alt}
                   fill
                   loading="lazy"
                   quality={80}
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  className="object-cover rounded-none transition-transform duration-700 ease-out group-hover:scale-105"
+                  sizes="(max-width: 768px) 100vw, 60vw"
+                  className="object-cover"
                 />
               </div>
-              <figcaption className="pt-4 text-xs font-mono uppercase tracking-widest text-foreground-secondary">
-                {item.caption}
-              </figcaption>
             </figure>
           ))}
         </div>
       </section>
 
-      {/* Next project */}
       <section className="px-6 md:px-12 max-w-[1700px] mx-auto pb-24 md:pb-32">
         <Link
-          href={`/work/${project.nextSlug}`}
-          className="group block p-8 md:p-14 rounded-none bg-surface-card border border-border-custom transition-colors duration-500 hover:border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+          href={`/work/${next.slug}`}
+          className="group grid grid-cols-12 items-center gap-8 border-t border-border-custom pt-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
         >
-          <span className="text-xs font-mono font-bold uppercase tracking-widest text-foreground-secondary">
-            Next Project
-          </span>
-
-          <div className="mt-4 flex items-center justify-between gap-8">
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tighter uppercase text-foreground leading-tight">
-              {project.nextTitle}
+          <div className="col-span-12 md:col-span-7">
+            <span className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-foreground-secondary">
+              Next
+            </span>
+            <h2 className="mt-3 flex items-center gap-4 font-display font-normal text-4xl md:text-6xl leading-none text-foreground">
+              {next.title}
+              <ArrowUpRight className="w-6 h-6 shrink-0 transition-transform duration-[250ms] group-hover:translate-x-1 group-hover:-translate-y-1" />
             </h2>
+          </div>
 
-            <div className="shrink-0 w-14 h-14 rounded-none bg-background border border-border-custom flex items-center justify-center text-foreground transition-all duration-300 group-hover:bg-foreground group-hover:text-background">
-              <ArrowUpRight className="w-6 h-6" />
+          <div className="col-span-12 md:col-span-4 md:col-start-9">
+            <div className="relative w-full aspect-[16/10] overflow-hidden bg-surface-card">
+              <Image
+                src={next.cover.src}
+                alt={next.cover.alt}
+                fill
+                loading="lazy"
+                quality={78}
+                sizes="(max-width: 768px) 100vw, 33vw"
+                className="object-cover transition-transform duration-[600ms] ease-out group-hover:scale-[1.02]"
+              />
             </div>
           </div>
         </Link>
