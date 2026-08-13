@@ -1,44 +1,49 @@
 "use client";
 
-import React from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { ArrowDown } from "lucide-react";
+import { gsap } from "gsap";
 import { BlurText } from "./BlurText";
 import { whenLoaderFinished } from "./loaderSignal";
 import { useLenis } from "./LenisScrollProvider";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 import { SERVICES } from "@/lib/services";
 import { useMagnetic } from "./useMagnetic";
 
 /**
  * The hero, as an editorial spread rather than a landing page.
  *
- * What it used to be: a badge, a headline, a subtitle, a set of coordinates, a
- * category filter and a four-card portfolio grid — an introduction, a showcase
- * and an interface competing in one viewport.
+ * The composition is settled: a proposition on the left, the studio's own work
+ * on the right, one action, and the scope underneath. What changed is that the
+ * two halves are now connected.
  *
- * Three decisions hold it together now.
+ * The service index used to be a list of four words next to a picture of a
+ * logo, and the two had nothing to do with each other. It is now the control
+ * and the picture is its state: point at Marketing and the sheet becomes the
+ * campaign, point at Websites and it becomes a built page. That is the studio's
+ * argument demonstrated rather than described — a system that answers when you
+ * ask it something.
  *
- * The headline says what the studio does, not that it is a studio. "Design
- * that connects" was true of every agency that has ever existed; holding
- * together is a claim with a failure state, which is what makes it worth
- * printing.
- *
- * One action. The second link — "Start a project" — asked a visitor who had
- * read one sentence to commit to a project, and split the attention of the one
- * thing they were actually ready to do. Seeing the work is the next step; the
- * contact page is two clicks away and repeated in the nav and the footer.
- *
- * The image is Loomie's own brand sheet, not a case study. Leading with a
- * numbered study spent the first project above the fold and then showed it
- * again in Selected Work a scroll later. The mark on its construction geometry
- * says "this is a studio that draws systems" without borrowing a project to
- * say it, and it is set into the page against a rule rather than framed as a
- * card, because a card would make it look like one more piece of work.
+ * Built as a tablist, which is what this is: four controls selecting one panel.
+ * That buys arrow-key navigation and a single tab stop for the whole index
+ * rather than four, and it means the image is announced as the thing the
+ * controls change rather than as decoration.
  */
+
+/** Long enough to read as a page turning, short enough not to be waited on. */
+const SWAP = 0.42;
 
 export function HeroSection() {
   const lenis = useLenis();
+  const prefersReducedMotion = usePrefersReducedMotion();
   const workRef = useMagnetic<HTMLAnchorElement>();
+
+  const [active, setActive] = useState(0);
+  const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
+  const platesRef = useRef<(HTMLDivElement | null)[]>([]);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const previous = useRef(0);
 
   /**
    * Smooth-scrolls when Lenis is running and otherwise does nothing, which
@@ -52,9 +57,90 @@ export function HeroSection() {
     lenis.current.scrollTo(target, { offset: -24 });
   };
 
+  /**
+   * The swap: the outgoing sheet lifts and goes, the incoming one arrives from
+   * just below. Six pixels, because the movement is there to give the change a
+   * direction, not to be noticed on its own.
+   */
+  useEffect(() => {
+    const from = previous.current;
+    previous.current = active;
+    if (from === active) return;
+
+    const outgoing = platesRef.current[from];
+    const incoming = platesRef.current[active];
+    if (!incoming) return;
+
+    if (prefersReducedMotion) {
+      if (outgoing) gsap.set(outgoing, { autoAlpha: 0, y: 0 });
+      gsap.set(incoming, { autoAlpha: 1, y: 0 });
+      return;
+    }
+
+    if (outgoing) {
+      gsap.to(outgoing, { autoAlpha: 0, y: -6, duration: SWAP, ease: "power3.out" });
+    }
+    gsap.fromTo(
+      incoming,
+      { autoAlpha: 0, y: 6 },
+      { autoAlpha: 1, y: 0, duration: SWAP, ease: "power3.out" }
+    );
+  }, [active, prefersReducedMotion]);
+
+  /**
+   * Optical depth, not a tilt.
+   *
+   * Three pixels of travel and a third of a degree: enough that the sheet reads
+   * as a physical thing catching the light, not enough to register as an
+   * effect. Off entirely for reduced motion and for anything without a real
+   * pointer, where there is no hover to respond to and the handler would only
+   * fire on touch.
+   */
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame || prefersReducedMotion) return;
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+
+    const moveX = gsap.quickTo(frame, "x", { duration: 0.8, ease: "power3.out" });
+    const moveY = gsap.quickTo(frame, "y", { duration: 0.8, ease: "power3.out" });
+    const tilt = gsap.quickTo(frame, "rotation", { duration: 0.9, ease: "power3.out" });
+
+    const onMove = (event: PointerEvent) => {
+      const x = event.clientX / window.innerWidth - 0.5;
+      const y = event.clientY / window.innerHeight - 0.5;
+      moveX(x * 6);
+      moveY(y * 4);
+      tilt(x * 0.34);
+    };
+
+    window.addEventListener("pointermove", onMove, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      gsap.to(frame, { x: 0, y: 0, rotation: 0, duration: 0.4 });
+    };
+  }, [prefersReducedMotion]);
+
+  /** Roving focus, so the index is one tab stop and the arrows move inside it. */
+  const onTabKey = useCallback((event: React.KeyboardEvent, index: number) => {
+    const last = SERVICES.length - 1;
+    let next: number | null = null;
+
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") next = index === last ? 0 : index + 1;
+    else if (event.key === "ArrowLeft" || event.key === "ArrowUp") next = index === 0 ? last : index - 1;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = last;
+
+    if (next === null) return;
+    event.preventDefault();
+    setActive(next);
+    tabsRef.current[next]?.focus();
+  }, []);
+
+  const current = SERVICES[active];
+
   return (
-    <section className="relative px-6 md:px-12 max-w-[1700px] mx-auto pt-28 md:pt-32 pb-14 md:pb-20">
-      <div className="grid grid-cols-12 gap-y-12 md:gap-x-8 lg:gap-x-12">
+    <section className="relative px-6 md:px-12 max-w-[1700px] mx-auto pt-28 md:pt-32 pb-12 md:pb-16">
+      <div className="grid grid-cols-12 gap-y-10 md:gap-x-8 lg:gap-x-12">
         {/* ── Left: who, what, the way in, and the scope ───────────────── */}
         <div className="col-span-12 lg:col-span-7 flex flex-col">
           <span className="font-mono text-[0.7rem] uppercase tracking-[0.22em] text-foreground-secondary">
@@ -88,62 +174,121 @@ export function HeroSection() {
             </a>
           </div>
 
-          {/*
-            The scope, in the space the headline leaves.
-            Deliberately not links: the navigation already goes to Services,
-            and a row of four more things to click beside the one action would
-            undo the point of having one action. This is an index, and an index
-            is something you read.
-          */}
-          <ul className="mt-14 lg:mt-auto lg:pt-16 grid grid-cols-2 gap-x-8 max-w-lg">
-            {SERVICES.map((service) => (
-              <li
-                key={service.number}
-                className="flex items-baseline gap-3 border-t border-border-custom py-3"
-              >
-                <span className="font-mono text-[0.65rem] tracking-[0.16em] text-foreground-secondary">
-                  {service.number}
-                </span>
-                <span className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-foreground">
-                  {service.title}
-                </span>
-              </li>
-            ))}
-          </ul>
+          {/* ── The index, which is also the control ────────────────────── */}
+          <div
+            role="tablist"
+            aria-label="What we do"
+            aria-orientation="horizontal"
+            className="mt-12 lg:mt-auto lg:pt-12 grid grid-cols-2 gap-x-8 max-w-lg"
+          >
+            {SERVICES.map((service, index) => {
+              const selected = index === active;
+              return (
+                <button
+                  key={service.number}
+                  ref={(node) => {
+                    tabsRef.current[index] = node;
+                  }}
+                  type="button"
+                  role="tab"
+                  id={`hero-service-${index}`}
+                  aria-selected={selected}
+                  aria-controls="hero-visual"
+                  tabIndex={selected ? 0 : -1}
+                  onMouseEnter={() => setActive(index)}
+                  onFocus={() => setActive(index)}
+                  onClick={() => setActive(index)}
+                  onKeyDown={(event) => onTabKey(event, index)}
+                  className="group relative flex items-baseline gap-3 border-t border-border-custom py-3 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+                >
+                  {/* Under the row, not on its top rule — on the top rule it
+                      reads as underlining the row above. It draws itself in
+                      from the left rather than boxing the row, so nothing
+                      moves when the selection changes. */}
+                  <span
+                    aria-hidden="true"
+                    className={`absolute left-0 bottom-0 h-px bg-foreground transition-all duration-[350ms] ease-out ${
+                      selected ? "w-full opacity-100" : "w-0 opacity-0"
+                    }`}
+                  />
+                  <span
+                    className={`font-mono text-[0.65rem] tracking-[0.16em] transition-colors duration-[350ms] ${
+                      selected ? "text-foreground" : "text-foreground-secondary"
+                    }`}
+                  >
+                    {service.number}
+                  </span>
+                  <span
+                    className={`font-mono text-[0.7rem] uppercase tracking-[0.14em] transition-colors duration-[350ms] ${
+                      selected
+                        ? "text-foreground"
+                        : "text-foreground-secondary group-hover:text-foreground"
+                    }`}
+                  >
+                    {service.title}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/*
-          ── Right: the studio's own sheet ──────────────────────────────
+          ── Right: the sheet the index is pointing at ──────────────────
           Set against a rule and run to the right edge, so it belongs to the
           page's grid rather than sitting on top of it in a panel.
         */}
-        <figure className="col-span-12 lg:col-span-5 lg:-mr-6 xl:-mr-12 flex flex-col">
+        <figure className="col-span-12 lg:col-span-5 lg:-mr-6 xl:-mr-12 lg:-mt-8 flex flex-col">
           <div className="border-t border-border-custom pt-4 lg:pr-6 xl:pr-12">
-            <figcaption className="flex items-baseline gap-3 font-mono text-[0.7rem] uppercase tracking-[0.18em] text-foreground-secondary">
-              <span className="text-foreground">Identity</span>
-              <span className="opacity-40" aria-hidden="true">/</span>
-              <span>Digital</span>
-              <span className="opacity-40" aria-hidden="true">/</span>
-              <span>Web</span>
+            <figcaption className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 font-mono text-[0.7rem] uppercase tracking-[0.18em]">
+              {/* Keyed, so the label re-renders rather than cross-fading into
+                  a string of the same length. */}
+              <span key={current.number} className="text-foreground">
+                {current.hero.label}
+              </span>
+              <span className="normal-case tracking-normal text-foreground-secondary">
+                {current.hero.note}
+              </span>
             </figcaption>
           </div>
 
-          <div className="relative mt-4 aspect-[4/5] sm:aspect-[3/2] lg:aspect-auto lg:flex-1 lg:min-h-[440px]">
-            <Image
-              src="/images/work/sheet-mark.jpg"
-              alt="Loomie's mark drawn on its construction geometry, with the aperture radius and overall measures marked"
-              fill
-              priority
-              quality={84}
-              sizes="(max-width: 1024px) 100vw, 42vw"
-              className="object-cover"
-            />
+          <div
+            ref={frameRef}
+            id="hero-visual"
+            role="tabpanel"
+            aria-labelledby={`hero-service-${active}`}
+            className="relative mt-4 aspect-[4/5] sm:aspect-[3/2] lg:aspect-auto lg:flex-1 lg:min-h-[470px] will-change-transform"
+          >
+            {SERVICES.map((service, index) => (
+              <div
+                key={service.number}
+                ref={(node) => {
+                  platesRef.current[index] = node;
+                }}
+                className="absolute inset-0"
+                style={
+                  index === active
+                    ? undefined
+                    : { opacity: 0, visibility: "hidden" }
+                }
+              >
+                <Image
+                  src={service.hero.src}
+                  alt={index === active ? service.hero.alt : ""}
+                  fill
+                  priority={index === 0}
+                  quality={82}
+                  sizes="(max-width: 1024px) 100vw, 42vw"
+                  className="object-cover"
+                />
+              </div>
+            ))}
           </div>
         </figure>
       </div>
 
       {/* The alignment the page is built on, stated once. */}
-      <hr className="mt-14 md:mt-20 border-t border-border-custom" />
+      <hr className="mt-10 md:mt-12 border-t border-border-custom" />
     </section>
   );
 }

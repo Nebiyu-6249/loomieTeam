@@ -17,14 +17,14 @@ import { ENGAGEMENTS, SECTORS } from "@/lib/clients";
 export function ClientsSection() {
   return (
     <>
-      <section className="px-6 md:px-12 max-w-[1700px] mx-auto py-16 md:py-24">
+      <section className="px-6 md:px-12 max-w-[1700px] mx-auto py-12 md:py-16">
         <p className="max-w-xl text-lg md:text-xl leading-snug text-foreground">
           Loomie works with people who make things — buildings, objects,
           products — and need them to be understood.
         </p>
       </section>
 
-      <section className="px-6 md:px-12 max-w-[1700px] mx-auto pb-20 md:pb-28">
+      <section className="px-6 md:px-12 max-w-[1700px] mx-auto pb-16 md:pb-20">
         {/* The page's h1 is now "Who we work with", which is what this
             heading used to say, so it names its own subject instead. */}
         <h2 className="font-mono text-xs uppercase tracking-[0.22em] text-foreground-secondary mb-10">
@@ -48,7 +48,7 @@ export function ClientsSection() {
         </dl>
       </section>
 
-      <section className="px-6 md:px-12 max-w-[1700px] mx-auto pb-24 md:pb-32">
+      <section className="px-6 md:px-12 max-w-[1700px] mx-auto pb-20 md:pb-24">
         <h2 className="font-mono text-xs uppercase tracking-[0.22em] text-foreground-secondary mb-10">
           How we work
         </h2>

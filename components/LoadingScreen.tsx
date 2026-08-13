@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { LoomieEyes } from "./LoomieEyes";
 import { markLoaderFinished } from "./loaderSignal";
-import { publishLoader, whenSceneDrawing } from "./three/sceneStore";
 
 /**
  * Plays on every hard load and never between routes.
@@ -15,11 +14,12 @@ import { publishLoader, whenSceneDrawing } from "./three/sceneStore";
  * server module never flips it and SSR always renders the overlay, matching
  * the client's first render on a fresh load.
  *
- * A10: this is not a screen in front of the page, it is the page's first
- * frame. The particle field the page scrolls through is the same field that
- * assembles the mark here; the loader only drives it, and hands it over when
- * the counter reaches a hundred. What the overlay itself contributes is the
- * background hiding the page and the counter.
+ * It used to drive the particle field: the loader claimed the WebGL points,
+ * assembled them into the mark and handed them to the page at a hundred. That
+ * was a good idea that cost too much — it made three.js part of the very first
+ * thing every visitor downloaded, on every route, to animate a logo for six
+ * tenths of a second. The mark now reveals itself: opacity, a little scale, and
+ * the counter. Same shape, same timing, none of the engine.
  */
 let hasPlayed = false;
 
@@ -84,81 +84,44 @@ export function LoadingScreen() {
       return () => cancelAnimationFrame(id);
     }
 
-    // Claim the field. This runs before the dynamically imported canvas has
-    // mounted, so the first frame it ever draws is already the loader's.
-    const state = { count: 0, form: 0, handoff: 0 };
-    publishLoader({ form: 0, handoff: 0 });
-
-    /**
-     * The drawn mark holds the position until the particle mark can take it,
-     * and then dissolves into it over whatever is left of the counter.
-     *
-     * Both halves of that matter. The scene arrives on a dynamic import and
-     * can take longer to draw its first frame than the whole loader lasts, so
-     * fading the drawn mark on a timer leaves the loading screen with no mark
-     * on it at all. And fading it the moment the canvas draws is just as
-     * wrong: the particles are still scattered across the viewport then, so
-     * there is again nothing that reads as a mark. It hands over as the
-     * particles assemble, not before.
-     */
-    let handedOver = false;
-    let formAtHandover: number | null = null;
-
-    whenSceneDrawing().then(() => {
-      if (handedOver) return;
-      formAtHandover = state.form;
-    });
-
-    const fadeDrawnMark = () => {
-      if (formAtHandover === null || !markRef.current) return;
-      const remaining = Math.max(1 - formAtHandover, 0.001);
-      const done = Math.min((state.form - formAtHandover) / remaining, 1);
-      markRef.current.style.opacity = String(1 - done);
-    };
+    const state = { count: 0 };
 
     const timeline = gsap.timeline({
       onComplete: () => {
         markPlayed();
-        publishLoader({ form: 1, handoff: 1 });
         markLoaderFinished();
         setPresent(false);
       },
     });
 
-    // The counter and the mark are the same motion: the particles fly in and
-    // freeze as the number climbs.
-    timeline.to(state, {
-      count: 100,
-      form: 1,
-      duration: COUNT_DURATION,
-      ease: "power2.inOut",
-      onUpdate: () => {
-        if (counterRef.current) {
-          counterRef.current.textContent = String(
-            Math.round(state.count)
-          ).padStart(2, "0");
-        }
-        publishLoader({ form: state.form, handoff: state.handoff });
-        fadeDrawnMark();
-      },
-    });
+    // The mark arrives. A little under its final size and a little transparent,
+    // settling as the number climbs — one movement, not a logo animation and a
+    // counter running alongside it.
+    timeline.fromTo(
+      markRef.current,
+      { opacity: 0, scale: 0.94 },
+      { opacity: 1, scale: 1, duration: COUNT_DURATION, ease: "power3.out" },
+      0
+    );
 
-    // The crack and clear. The overlay wipes off the page while the field
-    // disperses out of the mark, so the two are one movement rather than a
-    // screen leaving and a scene arriving.
     timeline.to(
       state,
       {
-        handoff: 1,
-        duration: CLEAR_DURATION,
-        ease: "power4.inOut",
+        count: 100,
+        duration: COUNT_DURATION,
+        ease: "power2.inOut",
         onUpdate: () => {
-          publishLoader({ form: state.form, handoff: state.handoff });
+          if (counterRef.current) {
+            counterRef.current.textContent = String(
+              Math.round(state.count)
+            ).padStart(2, "0");
+          }
         },
       },
-      "+=0.15"
+      0
     );
 
+    // The clear, as one wipe off the bottom of the screen.
     timeline.to(
       overlayRef.current,
       {
@@ -166,14 +129,11 @@ export function LoadingScreen() {
         duration: CLEAR_DURATION,
         ease: "power4.inOut",
       },
-      "<"
+      "+=0.12"
     );
 
     return () => {
-      handedOver = true;
       timeline.kill();
-      // A torn-down loader must not leave the field frozen in the mark.
-      publishLoader({ form: 1, handoff: 1 });
     };
   }, [present]);
 
@@ -189,13 +149,8 @@ export function LoadingScreen() {
         willChange: "clip-path",
       }}
     >
-      {/*
-        The mark is the only flex child, so it sits on the viewport's centre
-        and the particle mark — which is centred on the canvas — lands exactly
-        on top of it. With the counter in the flow they were a group, centred
-        together, and the two marks were sixty pixels apart.
-      */}
-      <div ref={markRef}>
+      {/* The only flex child, so it sits on the viewport's exact centre. */}
+      <div ref={markRef} style={{ opacity: 0 }}>
         <LoomieEyes className="w-40 h-20 md:w-64 md:h-32" track={false} />
       </div>
 
