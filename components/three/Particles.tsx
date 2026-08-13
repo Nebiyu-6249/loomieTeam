@@ -2,7 +2,19 @@
 
 import React, { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import * as THREE from "three";
+// Named imports rather than a namespace import: R3F resolves the intrinsic
+// elements itself, so the only three symbols this file needs are these eight,
+// and naming them gives the bundler something to shake.
+import {
+  BufferAttribute,
+  BufferGeometry,
+  Color,
+  NormalBlending,
+  Points,
+  ShaderMaterial,
+  Sphere,
+  Vector3,
+} from "three";
 import { getCapabilities } from "./capabilities";
 import {
   buildParticleField,
@@ -165,8 +177,8 @@ const readTheme = () =>
   document.documentElement.classList.contains("dark") ? "dark" : "light";
 
 export function Particles() {
-  const points = useRef<THREE.Points>(null);
-  const material = useRef<THREE.ShaderMaterial>(null);
+  const points = useRef<Points>(null);
+  const material = useRef<ShaderMaterial>(null);
 
   const size = useThree((state) => state.size);
   const viewport = useThree((state) => state.viewport);
@@ -185,14 +197,14 @@ export function Particles() {
   const framesDrawn = useRef(0);
 
   const geometry = useMemo(() => {
-    const buffer = new THREE.BufferGeometry();
-    buffer.setAttribute("position", new THREE.BufferAttribute(field.snow, 3));
-    buffer.setAttribute("aRiver", new THREE.BufferAttribute(field.river, 3));
-    buffer.setAttribute("aMark", new THREE.BufferAttribute(field.mark, 3));
-    buffer.setAttribute("aSeed", new THREE.BufferAttribute(field.seed, 3));
+    const buffer = new BufferGeometry();
+    buffer.setAttribute("position", new BufferAttribute(field.snow, 3));
+    buffer.setAttribute("aRiver", new BufferAttribute(field.river, 3));
+    buffer.setAttribute("aMark", new BufferAttribute(field.mark, 3));
+    buffer.setAttribute("aSeed", new BufferAttribute(field.seed, 3));
     // The field is repositioned entirely in the vertex shader, so the bounds
     // three would compute from the attribute are wrong and would cull it.
-    buffer.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 8);
+    buffer.boundingSphere = new Sphere(new Vector3(), 8);
     return buffer;
   }, [field]);
 
@@ -212,9 +224,9 @@ export function Particles() {
       // World units. About two and a half CSS pixels at the camera's distance.
       uSize: { value: capabilities.mobile ? 0.034 : 0.03 },
       uDepthScale: { value: 1 },
-      uMarkScale: { value: new THREE.Vector3(0.18, 0.18, 0.18) },
-      uCold: { value: new THREE.Color(palette.cold) },
-      uWarm: { value: new THREE.Color(palette.warm) },
+      uMarkScale: { value: new Vector3(0.18, 0.18, 0.18) },
+      uCold: { value: new Color(palette.cold) },
+      uWarm: { value: new Color(palette.warm) },
     };
   }, [capabilities.mobile]);
 
@@ -312,7 +324,7 @@ export function Particles() {
         fragmentShader={FRAGMENT_SHADER}
         transparent
         depthWrite={false}
-        blending={THREE.NormalBlending}
+        blending={NormalBlending}
       />
     </points>
   );

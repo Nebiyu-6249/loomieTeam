@@ -296,7 +296,15 @@ function specimen(w, h) {
  * which is the difference between a diagram of a grid and a grid in use.
  */
 function grid(w, h) {
-  const m = 96;
+  /**
+   * Wider than the other sheets on purpose.
+   *
+   * This plate is 16:10 and the case study hero frame is 16:9, so object-cover
+   * takes five per cent off the top and bottom. At the standard margin that
+   * crop lands straight through the sheet's own header line, which reads as a
+   * mistake rather than as a crop. The margin is set to survive it.
+   */
+  const m = 150;
   const columns = 12;
   const gutter = 26;
   const inner = w - m * 2;
