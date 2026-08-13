@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { PROJECTS_DATA } from "./work/[slug]/page";
+import { PROJECTS } from "@/lib/projects";
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -13,7 +13,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}${route}`,
       lastModified,
     })),
-    ...PROJECTS_DATA.map((project) => ({
+    ...PROJECTS.map((project) => ({
       url: `${baseUrl}/work/${project.slug}`,
       lastModified,
     })),

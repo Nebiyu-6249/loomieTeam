@@ -139,7 +139,7 @@ function Thaw({ onDone }: { onDone: () => void }) {
         shard: stacking a dozen of them is the expensive way to do this.
       */}
       <motion.div
-        className="absolute inset-0 backdrop-blur-[7px] backdrop-saturate-[0.15] bg-[#DCE6F0]/25"
+        className="absolute inset-0 bg-[#DCE6F0]/18"
         initial={{ opacity: 1 }}
         animate={{ opacity: 0 }}
         transition={{ duration: FROST_FADE, ease: "linear" }}
