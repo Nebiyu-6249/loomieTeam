@@ -33,7 +33,7 @@ interface Availability {
 type Status =
   | { kind: "idle" }
   | { kind: "sending" }
-  | { kind: "booked"; start: string }
+  | { kind: "booked"; start: string; visitorConfirmed: boolean; reference?: string }
   | { kind: "error"; message: string; field?: string };
 
 /** A small, sane set plus whatever the visitor's browser reports. */
@@ -174,7 +174,14 @@ export function BookingPanel() {
         return;
       }
 
-      setStatus({ kind: "booked", start: data.start });
+      setStatus({
+        kind: "booked",
+        start: data.start,
+        // The server reports whether the visitor's own confirmation email
+        // actually went out. The panel says so and never more.
+        visitorConfirmed: Boolean(data.visitorConfirmed),
+        reference: data.reference,
+      });
     } catch {
       setStatus({
         kind: "error",
@@ -187,15 +194,22 @@ export function BookingPanel() {
     return (
       <div className="border border-border-custom p-8 md:p-10" role="status">
         <h3 className="font-display font-normal text-3xl text-foreground">
-          Booked.
+          {status.visitorConfirmed ? "You're booked." : "Request received."}
         </h3>
         <p className="mt-4 text-sm text-foreground-secondary">
           {dayLabel(status.start, zone)} at {timeLabel(status.start, zone)} — your
           time ({zone.replace("_", " ")}).
         </p>
         <p className="mt-2 text-sm text-foreground-secondary">
-          A confirmation is on its way to your inbox.
+          {status.visitorConfirmed
+            ? "A confirmation has been sent to your email."
+            : "The studio has it. We will confirm the time by email."}
         </p>
+        {status.reference && (
+          <p className="mt-4 font-mono text-[0.7rem] uppercase tracking-[0.16em] text-foreground-secondary">
+            Ref {status.reference}
+          </p>
+        )}
       </div>
     );
   }

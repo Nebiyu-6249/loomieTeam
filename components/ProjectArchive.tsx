@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { PROJECTS } from "@/lib/projects";
+import { PROJECTS, STATUS_LABEL } from "@/lib/projects";
 
 /**
  * The work index.
@@ -93,6 +93,10 @@ export function ProjectArchive() {
                     <div className="flex gap-2">
                       <dt className="sr-only">Year</dt>
                       <dd>{project.year}</dd>
+                    </div>
+                    <div className="flex gap-2">
+                      <dt className="sr-only">Status</dt>
+                      <dd className="text-foreground">{STATUS_LABEL[project.status]}</dd>
                     </div>
                   </dl>
                 </div>

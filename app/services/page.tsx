@@ -5,9 +5,9 @@ import { ProcessSection } from "@/components/ProcessSection";
 import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "Services — LOOMIE",
+  title: "Services — Loomie",
   description:
-    "Identity, web identity, marketing design and websites from LOOMIE.",
+    "Identity, web identity, marketing design and websites from Loomie.",
 };
 
 export default function ServicesPage() {

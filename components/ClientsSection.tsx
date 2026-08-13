@@ -25,8 +25,10 @@ export function ClientsSection() {
       </section>
 
       <section className="px-6 md:px-12 max-w-[1700px] mx-auto pb-20 md:pb-28">
+        {/* The page's h1 is now "Who we work with", which is what this
+            heading used to say, so it names its own subject instead. */}
         <h2 className="font-mono text-xs uppercase tracking-[0.22em] text-foreground-secondary mb-10">
-          Who we work with
+          Sectors
         </h2>
 
         <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-12">

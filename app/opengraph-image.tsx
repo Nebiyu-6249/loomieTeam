@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "LOOMIE — Design That Connects";
+export const alt = "Loomie — Design that holds together";
 
 export const size = {
   width: 1200,
@@ -51,7 +51,7 @@ export default function OpengraphImage() {
             marginTop: 56,
           }}
         >
-          LOOMIE
+          Loomie
         </div>
 
         <div
@@ -68,11 +68,11 @@ export default function OpengraphImage() {
           style={{
             display: "flex",
             fontSize: 30,
-            letterSpacing: 8,
+            letterSpacing: 6,
             marginTop: 40,
           }}
         >
-          DESIGN THAT CONNECTS
+          DESIGN THAT HOLDS TOGETHER
         </div>
       </div>
     ),

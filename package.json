@@ -9,7 +9,8 @@
     "lint": "eslint",
     "optimise-images": "node scripts/optimise-images.mjs",
     "typecheck": "tsc --noEmit",
-    "grade-images": "node scripts/grade-images.mjs"
+    "grade-images": "node scripts/grade-images.mjs",
+    "make-artefacts": "node scripts/make-artefacts.mjs"
   },
   "dependencies": {
     "@react-three/fiber": "^9.7.0",

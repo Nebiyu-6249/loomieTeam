@@ -2,17 +2,18 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Menu, X } from "lucide-react";
+import { ArrowRight, Menu, Moon, Sun, X } from "lucide-react";
 import { gsap } from "gsap";
 import { LoomieEyes } from "./LoomieEyes";
 import { useLenis } from "./LenisScrollProvider";
 import { useMagnetic } from "./useMagnetic";
+import { useTheme } from "./ThemeProvider";
 
 const NAV_ITEMS = [
   { label: "Work", href: "/work", number: "01" },
   { label: "Services", href: "/services", number: "02" },
   { label: "Studio", href: "/studio", number: "03" },
-  { label: "Clients", href: "/clients", number: "04" },
+  { label: "Who we work with", href: "/clients", number: "04" },
 ];
 
 export function Navbar() {
@@ -25,6 +26,7 @@ export function Navbar() {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const keyHandlerRef = useRef<((event: KeyboardEvent) => void) | null>(null);
   const talkRef = useMagnetic<HTMLAnchorElement>();
+  const { toggleTheme } = useTheme();
   const lenis = useLenis();
 
   useEffect(() => {
@@ -68,7 +70,7 @@ export function Navbar() {
     };
   }, [lenis]);
 
-  // GSAP Powerdown Overlay Animation
+  // Closing the fullscreen menu.
   const closeMenu = () => {
     if (!overlayRef.current) return;
 
@@ -100,7 +102,7 @@ export function Navbar() {
       });
     }
 
-    // Curtain Powerdown Up Animation
+    // The curtain lifts.
     tl.to(overlayRef.current, {
       clipPath: "polygon(0 0, 100% 0, 100% 0, 0 0)",
       duration: 0.65,
@@ -151,7 +153,7 @@ export function Navbar() {
     document.addEventListener("keydown", handleKeyDown);
   };
 
-  // GSAP Powerup Overlay Animation
+  // Opening the fullscreen menu.
   const openMenu = () => {
     if (!overlayRef.current) return;
 
@@ -167,7 +169,7 @@ export function Navbar() {
 
     const tl = gsap.timeline();
 
-    // Curtain Powerup Down Animation
+    // The curtain drops.
     tl.to(overlayRef.current, {
       display: "flex",
       clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)",
@@ -175,7 +177,7 @@ export function Navbar() {
       ease: "power4.inOut",
     });
 
-    // Stagger Kinetic Menu Links Slide Up
+    // The links arrive in order.
     if (menuLinksRef.current) {
       tl.fromTo(
         menuLinksRef.current.children,
@@ -215,14 +217,14 @@ export function Navbar() {
           <Link
             href="/"
             className="group flex items-center transition-transform duration-300 hover:scale-110 select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
-            aria-label="LOOMIE Home"
+            aria-label="Loomie Home"
           >
             <LoomieEyes className="w-14 h-7" />
           </Link>
 
           {/* Middle Menu Links (Disappears on scroll DOWN, re-appears on scroll UP) */}
           <nav
-            className={`hidden md:flex items-center gap-10 xl:gap-14 text-base md:text-lg font-sans transition-all duration-500 transform ${
+            className={`hidden lg:flex items-center gap-8 xl:gap-12 text-base lg:text-lg font-sans transition-all duration-500 transform ${
               showMenuLinks
                 ? "opacity-100 translate-y-0 pointer-events-auto"
                 : "opacity-0 -translate-y-4 pointer-events-none"
@@ -249,7 +251,7 @@ export function Navbar() {
               aria-expanded={menuOpen}
               aria-controls="site-menu"
               className={`p-3.5 rounded-none bg-surface-card border border-border-custom text-foreground transition-all duration-500 hover:scale-105 hover:border-foreground items-center gap-2.5 shadow-sm group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground ${
-                showMenuLinks ? "flex md:hidden" : "flex"
+                showMenuLinks ? "flex lg:hidden" : "flex"
               }`}
               aria-label="Toggle Fullscreen Menu"
             >
@@ -276,7 +278,7 @@ export function Navbar() {
         </div>
       </header>
 
-      {/* GSAP Fullscreen Powerup & Down Curtain Overlay Menu */}
+      {/* Fullscreen menu. */}
       <div
         ref={overlayRef}
         id="site-menu"
@@ -294,7 +296,7 @@ export function Navbar() {
           <div className="flex items-center gap-3">
             <LoomieEyes className="w-14 h-7" />
             <span className="font-mono text-xs font-bold tracking-widest text-foreground-secondary uppercase">
-              STUDIO NAVIGATION ENGINE
+              Menu
             </span>
           </div>
 
@@ -307,7 +309,7 @@ export function Navbar() {
           </button>
         </div>
 
-        {/* Large GSAP Powerup Menu Links */}
+        {/* Menu links. */}
         <div className="max-w-[1700px] w-full mx-auto my-auto py-8">
           <div
             ref={menuLinksRef}
@@ -335,19 +337,18 @@ export function Navbar() {
         {/* Overlay Footer */}
         <div className="max-w-[1700px] w-full mx-auto pt-8 border-t border-border-custom flex flex-col md:flex-row items-center justify-between text-xs font-mono text-foreground-secondary gap-4">
           <div>
-            <span>LOOMIE STUDIO 2026</span> • <span>TOKYO / LONDON / NYC</span>
+            <span>hello@loomiestudio.com</span>
           </div>
-          <div className="flex items-center gap-8">
-            <a href="https://twitter.com" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
-              X / Twitter ↗
-            </a>
-            <a href="https://instagram.com" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
-              Instagram ↗
-            </a>
-            <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
-              LinkedIn ↗
-            </a>
-          </div>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex items-center gap-2.5 uppercase tracking-[0.16em] hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-foreground"
+          >
+            <Sun className="w-4 h-4 hidden dark:block" aria-hidden="true" />
+            <Moon className="w-4 h-4 block dark:hidden" aria-hidden="true" />
+            <span className="hidden dark:inline">Light theme</span>
+            <span className="inline dark:hidden">Dark theme</span>
+          </button>
         </div>
       </div>
     </>
