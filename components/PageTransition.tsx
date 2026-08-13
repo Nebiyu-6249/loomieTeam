@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { motion, useReducedMotion } from "motion/react";
+import { gsap } from "gsap";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 /**
  * A1 — "Thaw" route transition.
@@ -18,6 +19,11 @@ import { motion, useReducedMotion } from "motion/react";
  *
  * Reveal-only. It never covers before navigating; that is what made the
  * previous version feel slow.
+ *
+ * Animated with GSAP rather than a second animation library. This was the only
+ * component importing motion, and carrying a whole runtime on every route for
+ * thirteen opacity-and-translate tweens is not a trade worth making when the
+ * library already driving every other animation on the site does the same job.
  */
 
 /**
@@ -57,7 +63,7 @@ const MELT_SPREAD = 0.16;
 const FROST_FADE = 0.26;
 
 /** 0.16 + 0.34 = 0.5s of tween, budgeted under the 600ms ceiling. */
-const EASE_MELT = [0.76, 0, 0.24, 1] as const;
+const EASE_MELT = "cubic-bezier(0.76, 0, 0.24, 1)";
 
 interface Shard {
   clipPath: string;
@@ -109,6 +115,7 @@ function Thaw({ onDone }: { onDone: () => void }) {
   // Snapshot the origin at mount, so a pointer press during the melt cannot
   // re-order shards mid-animation.
   const [origin] = useState(() => ({ ...clickOrigin }));
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const delayFor = (shard: Shard) => {
     const dx = shard.centreX - origin.x;
@@ -120,16 +127,45 @@ function Thaw({ onDone }: { onDone: () => void }) {
 
   const delays = SHARDS.map(delayFor);
 
-  // Delays vary by distance from the click, so the last shard in the array is
-  // not the last one to finish. Unmounting on that one would cut the melt off
-  // part way through.
-  const lastToFinish = delays.reduce(
-    (slowest, delay, index) => (delay > delays[slowest] ? index : slowest),
-    0
-  );
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+
+    const shards = Array.from(root.querySelectorAll<HTMLElement>("[data-thaw-shard]"));
+    const frost = root.querySelector<HTMLElement>("[data-thaw-frost]");
+
+    // One timeline, so the whole transition is killed as a unit if the visitor
+    // navigates again before it finishes.
+    const timeline = gsap.timeline({ onComplete: onDone });
+
+    if (frost) {
+      timeline.to(frost, { opacity: 0, duration: FROST_FADE, ease: "none" }, 0);
+    }
+
+    shards.forEach((shard, index) => {
+      timeline.to(
+        shard,
+        {
+          yPercent: 108,
+          opacity: 0.35,
+          duration: MELT_DURATION,
+          ease: EASE_MELT,
+        },
+        delays[index]
+      );
+    });
+
+    return () => {
+      timeline.kill();
+    };
+    // The geometry is module-level and the origin is snapshotted at mount, so
+    // this runs once per mounted transition and the gate keys it per route.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div
+      ref={rootRef}
       aria-hidden="true"
       data-thaw=""
       className="fixed inset-0 z-[99998] pointer-events-none overflow-hidden"
@@ -138,27 +174,14 @@ function Thaw({ onDone }: { onDone: () => void }) {
         The frozen state. One backdrop-filter element rather than one per
         shard: stacking a dozen of them is the expensive way to do this.
       */}
-      <motion.div
-        className="absolute inset-0 bg-[#DCE6F0]/18"
-        initial={{ opacity: 1 }}
-        animate={{ opacity: 0 }}
-        transition={{ duration: FROST_FADE, ease: "linear" }}
-      />
+      <div data-thaw-frost="" className="absolute inset-0 bg-[#DCE6F0]/18" />
 
       {SHARDS.map((shard, index) => (
-        <motion.div
+        <div
           key={index}
           data-thaw-shard=""
           className="absolute inset-0 bg-[#E4ECF4]"
           style={{ clipPath: shard.clipPath }}
-          initial={{ y: 0, opacity: 1 }}
-          animate={{ y: "108%", opacity: 0.35 }}
-          transition={{
-            duration: MELT_DURATION,
-            delay: delays[index],
-            ease: EASE_MELT,
-          }}
-          onAnimationComplete={index === lastToFinish ? onDone : undefined}
         />
       ))}
     </div>
@@ -181,7 +204,7 @@ function ThawGate() {
 
 export function PageTransition() {
   const pathname = usePathname();
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     trackPointer();

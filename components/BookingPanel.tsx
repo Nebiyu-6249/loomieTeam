@@ -193,9 +193,9 @@ export function BookingPanel() {
   if (status.kind === "booked") {
     return (
       <div className="border border-border-custom p-8 md:p-10" role="status">
-        <h3 className="font-display font-normal text-3xl text-foreground">
+        <h2 className="font-display font-normal text-3xl text-foreground">
           {status.visitorConfirmed ? "You're booked." : "Request received."}
-        </h3>
+        </h2>
         <p className="mt-4 text-sm text-foreground-secondary">
           {dayLabel(status.start, zone)} at {timeLabel(status.start, zone)} — your
           time ({zone.replace("_", " ")}).
@@ -217,9 +217,9 @@ export function BookingPanel() {
   return (
     <div className="border border-border-custom min-w-0">
       <div className="flex items-baseline justify-between gap-4 border-b border-border-custom px-6 md:px-8 py-5">
-        <h3 className="font-mono text-xs uppercase tracking-[0.18em] text-foreground">
+        <h2 className="font-mono text-xs uppercase tracking-[0.18em] text-foreground">
           Book a 20-minute intro
-        </h3>
+        </h2>
         <span className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-foreground-secondary">
           No charge
         </span>
@@ -356,7 +356,7 @@ export function BookingPanel() {
                   required
                   autoComplete="name"
                   aria-invalid={status.kind === "error" && status.field === "name"}
-                  className="mt-2 w-full bg-transparent border-b border-border-custom py-2 text-foreground focus:border-foreground focus-visible:outline-none"
+                  className="mt-2 w-full bg-transparent border-b border-border-custom py-2 text-foreground focus:border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
                 />
               </label>
 
@@ -370,7 +370,7 @@ export function BookingPanel() {
                   required
                   autoComplete="email"
                   aria-invalid={status.kind === "error" && status.field === "email"}
-                  className="mt-2 w-full bg-transparent border-b border-border-custom py-2 text-foreground focus:border-foreground focus-visible:outline-none"
+                  className="mt-2 w-full bg-transparent border-b border-border-custom py-2 text-foreground focus:border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
                 />
               </label>
 
@@ -381,7 +381,7 @@ export function BookingPanel() {
                 <select
                   name="service"
                   defaultValue=""
-                  className="mt-2 w-full bg-transparent border-b border-border-custom py-2 text-foreground focus:border-foreground focus-visible:outline-none"
+                  className="mt-2 w-full bg-transparent border-b border-border-custom py-2 text-foreground focus:border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
                 >
                   <option value="" className="bg-surface text-foreground">
                     Not sure yet
@@ -401,7 +401,7 @@ export function BookingPanel() {
                 <input
                   name="note"
                   maxLength={1200}
-                  className="mt-2 w-full bg-transparent border-b border-border-custom py-2 text-foreground focus:border-foreground focus-visible:outline-none"
+                  className="mt-2 w-full bg-transparent border-b border-border-custom py-2 text-foreground focus:border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
                 />
               </label>
             </div>
