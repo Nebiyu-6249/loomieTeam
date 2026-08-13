@@ -216,16 +216,16 @@ export function BookingPanel() {
 
   return (
     <div className="border border-border-custom min-w-0">
-      <div className="flex items-baseline justify-between gap-4 border-b border-border-custom px-6 md:px-8 py-5">
-        <h2 className="font-mono text-xs uppercase tracking-[0.18em] text-foreground">
+      <div className="flex items-baseline justify-between gap-4 border-b border-border-custom px-6 md:px-8 py-6">
+        <h2 className="font-display font-normal text-2xl md:text-3xl leading-none text-foreground">
           Book a 20-minute intro
         </h2>
-        <span className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-foreground-secondary">
+        <span className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-foreground-secondary shrink-0">
           No charge
         </span>
       </div>
 
-      <div className="px-6 md:px-8 py-7 min-w-0">
+      <div className="px-6 md:px-8 py-8 min-w-0">
         {loadError && (
           <p className="text-sm text-foreground-secondary">
             The diary is not loading. Email{" "}
@@ -275,7 +275,7 @@ export function BookingPanel() {
                         setDay(entry.key);
                         setSlot(null);
                       }}
-                      className={`shrink-0 px-4 py-2.5 font-mono text-xs uppercase tracking-[0.12em] border transition-colors duration-[250ms] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground ${
+                      className={`shrink-0 px-4 py-3 font-mono text-[0.8rem] uppercase tracking-[0.12em] border transition-colors duration-[250ms] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground ${
                         isActive
                           ? "border-foreground bg-foreground text-background"
                           : "border-border-custom text-foreground-secondary hover:text-foreground hover:border-foreground"
@@ -289,7 +289,7 @@ export function BookingPanel() {
             </fieldset>
 
             {/* ── Time ────────────────────────────────────────────── */}
-            <fieldset className="mt-7">
+            <fieldset className="mt-8">
               <legend className="font-mono text-[0.7rem] uppercase tracking-[0.16em] text-foreground-secondary mb-3">
                 Time
               </legend>
@@ -302,7 +302,7 @@ export function BookingPanel() {
                       type="button"
                       aria-pressed={isActive}
                       onClick={() => setSlot(entry.start)}
-                      className={`px-4 py-2.5 font-mono text-xs tracking-[0.12em] border transition-colors duration-[250ms] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground ${
+                      className={`px-5 py-3 font-mono text-[0.85rem] tracking-[0.12em] border transition-colors duration-[250ms] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground ${
                         isActive
                           ? "border-foreground bg-foreground text-background"
                           : "border-border-custom text-foreground-secondary hover:text-foreground hover:border-foreground"
@@ -416,7 +416,7 @@ export function BookingPanel() {
               <button
                 type="submit"
                 disabled={!slot || status.kind === "sending"}
-                className="px-7 py-3 bg-foreground text-background font-mono text-xs uppercase tracking-[0.16em] border border-foreground transition-colors duration-[250ms] hover:bg-transparent hover:text-foreground disabled:opacity-40 disabled:hover:bg-foreground disabled:hover:text-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+                className="px-9 py-4 bg-foreground text-background font-mono text-[0.8rem] uppercase tracking-[0.16em] border border-foreground transition-colors duration-[250ms] hover:bg-transparent hover:text-foreground disabled:opacity-40 disabled:hover:bg-foreground disabled:hover:text-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
               >
                 {status.kind === "sending" ? "Sending…" : "Confirm"}
               </button>

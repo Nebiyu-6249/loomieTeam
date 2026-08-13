@@ -74,7 +74,7 @@ export function CaseStudyClient({
         </div>
       </section>
 
-      <section className="px-6 md:px-12 max-w-[1700px] mx-auto py-20 md:py-28">
+      <section className="px-6 md:px-12 max-w-[1700px] mx-auto py-16 md:py-22">
         <div className="grid grid-cols-12 gap-x-8 gap-y-12">
           {PARTS.map((part) => (
             <div key={part.key} className="col-span-12 md:col-span-4">
@@ -89,7 +89,7 @@ export function CaseStudyClient({
         </div>
       </section>
 
-      <section className="px-6 md:px-12 max-w-[1700px] mx-auto pb-20 md:pb-28">
+      <section className="px-6 md:px-12 max-w-[1700px] mx-auto pb-16 md:pb-20">
         <div className="grid grid-cols-12 gap-8">
           {project.gallery.map((image, index) => (
             <figure
@@ -112,7 +112,7 @@ export function CaseStudyClient({
         </div>
       </section>
 
-      <section className="px-6 md:px-12 max-w-[1700px] mx-auto pb-24 md:pb-32">
+      <section className="px-6 md:px-12 max-w-[1700px] mx-auto pb-20 md:pb-24">
         <Link
           href={`/work/${next.slug}`}
           className="group grid grid-cols-12 items-center gap-8 border-t border-border-custom pt-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"

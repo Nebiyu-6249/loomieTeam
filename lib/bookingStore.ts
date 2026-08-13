@@ -21,6 +21,17 @@ export interface Booking {
   note?: string;
   timezone: string;
   createdAt: number;
+  /**
+   * Whether the visitor's own confirmation email actually went out.
+   *
+   * Stored rather than assumed. The slot is claimed before anything is sent —
+   * it has to be, or two people can be emailed the same time — so a booking
+   * exists for a moment before its delivery is known, and the duplicate path
+   * used to fill that gap by returning `true`. That meant a visitor whose
+   * receipt had failed, hitting submit again, was told a confirmation had been
+   * sent. It had not.
+   */
+  visitorConfirmed?: boolean;
 }
 
 export interface BookingStore {
@@ -30,6 +41,8 @@ export interface BookingStore {
   get(start: string): Promise<Booking | null>;
   /** False when the slot was already taken — the caller must not overwrite. */
   claim(booking: Booking): Promise<boolean>;
+  /** Records what delivery actually achieved, once it is known. */
+  settle(start: string, visitorConfirmed: boolean): Promise<void>;
   taken(): Promise<string[]>;
   /** Hands a slot back when the booking could not be completed. */
   release(start: string): Promise<void>;
@@ -85,6 +98,13 @@ function redisStore(url: string, token: string): BookingStore {
       return true;
     },
 
+    async settle(start, visitorConfirmed) {
+      const raw = await call(["GET", SLOT_KEY(start)]);
+      if (typeof raw !== "string") return;
+      const booking = { ...(JSON.parse(raw) as Booking), visitorConfirmed };
+      await call(["SET", SLOT_KEY(start), JSON.stringify(booking)]);
+    },
+
     async taken() {
       const members = await call(["SMEMBERS", TAKEN_SET]);
       return Array.isArray(members) ? (members as string[]) : [];
@@ -125,6 +145,11 @@ const memoryStore: BookingStore = {
     return true;
   },
 
+  async settle(start, visitorConfirmed) {
+    const booking = bookings.get(start);
+    if (booking) bookings.set(start, { ...booking, visitorConfirmed });
+  },
+
   async taken() {
     return [...bookings.keys()];
   },
@@ -153,14 +178,27 @@ export function getBookingStore(): BookingStore {
   if (!warned && process.env.NODE_ENV === "production") {
     warned = true;
     console.warn(
-      "[loomie] No UPSTASH_REDIS_REST_URL configured. Bookings are being " +
-        "held in process memory and will be lost on restart, and will not be " +
-        "shared between instances. Do not run the booking form this way in " +
-        "production."
+      "[loomie] No UPSTASH_REDIS_REST_URL configured. The booking route will " +
+        "refuse bookings rather than hold them in process memory, where they " +
+        "would be lost on restart and invisible to other instances. Configure " +
+        "the store to accept bookings."
     );
   }
 
   return memoryStore;
+}
+
+/**
+ * Whether this process may accept a real booking.
+ *
+ * A Map that dies with the process is fine for development and for the test
+ * suite, and is not a diary. In production it would lose every booking on the
+ * next deploy and let two visitors claim one slot from two instances, so the
+ * route refuses rather than accepting into it. The adapter stays for local
+ * work; what changes is that production has to be configured.
+ */
+export function storageAcceptsBookings(store: BookingStore) {
+  return store.durable || process.env.NODE_ENV !== "production";
 }
 
 export const RATE_LIMIT = { max: 5, windowMs: 10 * 60_000 };

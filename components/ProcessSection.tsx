@@ -269,9 +269,9 @@ export function ProcessSection() {
     <section
       ref={sectionRef}
       id="process"
-      className="px-6 md:px-12 max-w-[1700px] mx-auto py-20 md:py-28 border-t border-border-custom"
+      className="px-6 md:px-12 max-w-[1700px] mx-auto py-16 md:py-22 border-t border-border-custom"
     >
-      <h2 className="font-mono text-xs uppercase tracking-[0.22em] text-foreground-secondary mb-14 md:mb-20">
+      <h2 className="font-mono text-xs uppercase tracking-[0.22em] text-foreground-secondary mb-10 md:mb-14">
         How it runs
       </h2>
 

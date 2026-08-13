@@ -106,9 +106,9 @@ export function SelectedWork() {
     <section
       id="work"
       data-selected-work=""
-      className="px-6 md:px-12 max-w-[1700px] mx-auto pt-10 md:pt-14 pb-20 md:pb-28"
+      className="px-6 md:px-12 max-w-[1700px] mx-auto pt-8 md:pt-10 pb-16 md:pb-20"
     >
-      <div className="flex items-baseline justify-between gap-8 mb-14 md:mb-20">
+      <div className="flex items-baseline justify-between gap-8 mb-10 md:mb-14">
         <h2 className="font-mono text-xs uppercase tracking-[0.22em] text-foreground-secondary">
           Selected work
         </h2>
@@ -120,7 +120,7 @@ export function SelectedWork() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-12 gap-x-8 gap-y-16 md:gap-y-24">
+      <div className="grid grid-cols-12 gap-x-8 gap-y-12 md:gap-y-20">
         {SELECTED_PROJECTS.map((project, index) => (
           <Study
             key={project.slug}

@@ -60,13 +60,13 @@ export function ServicesSection() {
   return (
     <section
       id="services"
-      className="px-6 md:px-12 max-w-[1700px] mx-auto py-20 md:py-28 border-t border-border-custom"
+      className="px-6 md:px-12 max-w-[1700px] mx-auto py-16 md:py-22 border-t border-border-custom"
     >
-      <h2 className="font-mono text-xs uppercase tracking-[0.22em] text-foreground-secondary mb-14 md:mb-20">
+      <h2 className="font-mono text-xs uppercase tracking-[0.22em] text-foreground-secondary mb-10 md:mb-14">
         What we do
       </h2>
 
-      <div className="grid grid-cols-12 gap-x-8 gap-y-16 md:gap-y-20">
+      <div className="grid grid-cols-12 gap-x-8 gap-y-14 md:gap-y-16">
         {SERVICES.map((service) => (
           <ServiceEntry key={service.number} service={service} />
         ))}

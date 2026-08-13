@@ -43,7 +43,11 @@ export interface ProjectImage {
 
 export interface Project {
   slug: string;
-  /** Archive numbering. Stable, so it never renumbers when one is added. */
+  /**
+   * Archive numbering. Written down rather than derived, so adding a project
+   * never renumbers the ones already published and linked to. Curating the
+   * placeholder set is the one time it is edited by hand.
+   */
   index: string;
   title: string;
   sector: string;
@@ -161,39 +165,8 @@ export const PROJECTS: Project[] = [
     status: "concept",
   },
   {
-    slug: "marne",
-    index: "04",
-    title: "Marne",
-    sector: "Interiors",
-    year: "2024",
-    disciplines: ["Web identity"],
-    summary: "A photography-led site that gets out of the photography's way.",
-    cover: {
-      src: "/images/work/canopy.jpg",
-      alt: "A roofline framed by branches",
-    },
-    hero: {
-      src: "/images/work/structure-tall.jpg",
-      alt: "A building elevation seen between trees",
-    },
-    gallery: [
-      { src: "/images/work/structure.jpg", alt: "The building at dusk" },
-      {
-        src: "/images/work/sheet-type.jpg",
-        alt: "The single weight everything on the site is set in",
-      },
-    ],
-    brief:
-      "Strong photography arriving in inconsistent crops, sizes and colour, and a site that flattened all of it.",
-    approach:
-      "A fixed set of frames and one grade, applied on the way in. Everything else on the page is set in one weight so nothing competes with the image.",
-    outcome:
-      "A site where the work is the only thing asking for attention.",
-    status: "concept",
-  },
-  {
     slug: "quarry",
-    index: "05",
+    index: "04",
     title: "Quarry",
     sector: "Materials supply",
     year: "2024",
@@ -228,14 +201,19 @@ export const getProject = (slug: string) =>
   PROJECTS.find((project) => project.slug === slug);
 
 /**
- * The homepage shows three. The archive shows all five.
+ * The homepage shows three. The archive shows all four.
  *
- * Both numbers are decisions rather than accidents. Three is what fits the
- * homepage's rhythm — wide, narrow, wide — without the section turning into a
- * grid; five is enough for an archive to have a shape and few enough that
- * every one of them earns a distinct cover image. Nothing counts these
- * anywhere else, so adding a sixth project means editing PROJECTS and nothing
- * else.
+ * It was five. Marne came out after seeing the archive laid out: it was an
+ * interiors study covered by canopy.jpg, and Northbank was an architecture
+ * study covered by structure.jpg, and both crops are the same building from
+ * the same source photograph. Two entries that look like one project shown
+ * twice make an archive read as padding, and four studies that each look like
+ * their own thing is a stronger claim than five that do not. Every remaining
+ * cover comes from a different image.
+ *
+ * Three on the homepage is what fits its rhythm — wide, narrow, wide — without
+ * the section turning into a grid. Nothing counts these anywhere else, so
+ * adding a fifth means editing PROJECTS and nothing else.
  *
  * The hero deliberately takes none of them. It leads with the studio's own
  * brand sheet instead, so the first study a visitor sees is in Selected Work
