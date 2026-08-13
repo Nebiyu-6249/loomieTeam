@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { CALL_MINUTES, STUDIO_TIMEZONE, isOfferedSlot } from "@/lib/availability";
-import { RATE_LIMIT, getBookingStore } from "@/lib/bookingStore";
+import { RATE_LIMIT, getBookingStore, storageAcceptsBookings } from "@/lib/bookingStore";
 import { deliver, deliveryConfigured } from "@/lib/notify";
 import { SERVICE_OPTIONS } from "@/lib/services";
 
@@ -24,6 +24,16 @@ export const dynamic = "force-dynamic";
 /** Under this and it was filled by a script, not a person. */
 const MIN_FILL_MS = 3000;
 const MAX_NOTE = 1200;
+
+/**
+ * The largest body this route will read.
+ *
+ * Generous for the eight short fields it actually accepts, and small enough
+ * that nothing worth calling a payload gets parsed. Checked before the body is
+ * read rather than after, so an oversized request is refused rather than
+ * buffered and then measured.
+ */
+const MAX_BODY_BYTES = 16 * 1024;
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -67,15 +77,39 @@ export async function POST(request: Request) {
 
   const store = getBookingStore();
 
+  // Nothing is accepted into a diary that cannot keep it.
+  if (!storageAcceptsBookings(store)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Booking is not available just now. Please email hello@loomiestudio.com and we will confirm by return.",
+        unconfigured: true,
+      },
+      { status: 503 }
+    );
+  }
+
   const key =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
   if ((await store.hit(key, RATE_LIMIT.windowMs)) > RATE_LIMIT.max) {
     return fail(429, "Too many requests. Try again shortly.");
   }
 
+  const declared = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
+    return fail(413, "That request is too large.");
+  }
+
   let body: Payload;
   try {
-    body = (await request.json()) as Payload;
+    // Read as text first: a chunked request has no content-length to check
+    // against, and the parse is the expensive part to protect.
+    const raw = await request.text();
+    if (raw.length > MAX_BODY_BYTES) {
+      return fail(413, "That request is too large.");
+    }
+    body = JSON.parse(raw) as Payload;
   } catch {
     return fail(400, "Malformed request.");
   }
@@ -112,7 +146,10 @@ export async function POST(request: Request) {
         duplicate: true,
         start,
         reference: existing.id,
-        visitorConfirmed: true,
+        // What was actually achieved the first time, not what was hoped for.
+        // A booking whose receipt failed must not start claiming otherwise
+        // just because the visitor pressed the button again.
+        visitorConfirmed: existing.visitorConfirmed === true,
       });
     }
     return fail(409, "That time has just been taken.", "start");
@@ -129,7 +166,14 @@ export async function POST(request: Request) {
     return fail(422, "Unknown timezone.", "timezone");
   }
 
-  const note = typeof body.note === "string" ? body.note.trim().slice(0, MAX_NOTE) : "";
+  const note = typeof body.note === "string" ? body.note.trim() : "";
+  if (note.length > MAX_NOTE) {
+    return fail(
+      422,
+      `Please keep the note under ${MAX_NOTE} characters.`,
+      "note"
+    );
+  }
 
   if (!deliveryConfigured()) {
     return NextResponse.json(
@@ -161,6 +205,10 @@ export async function POST(request: Request) {
   }
 
   const delivery = await deliver(booking);
+
+  // Recorded before the response is written, so a duplicate submission reads
+  // the same answer this one is about to give.
+  await store.settle(start, delivery.visitorConfirmed);
 
   if (!delivery.studioNotified) {
     // Nobody at the studio knows about this, so it is not a booking. The slot

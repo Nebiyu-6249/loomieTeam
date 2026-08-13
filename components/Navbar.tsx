@@ -216,7 +216,7 @@ export function Navbar() {
           {/* Constant Brand Logo Icon */}
           <Link
             href="/"
-            className="group flex items-center transition-transform duration-300 hover:scale-110 select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+            className="group flex items-center opacity-90 transition-opacity duration-300 hover:opacity-100 select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
             aria-label="Loomie Home"
           >
             <LoomieEyes className="w-14 h-7" />
@@ -234,7 +234,7 @@ export function Navbar() {
               <Link
                 key={item.label}
                 href={item.href}
-                className="text-foreground font-medium tracking-normal opacity-90 transition-all duration-300 hover:opacity-100 hover:scale-105 relative group py-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+                className="text-foreground font-medium tracking-normal opacity-70 transition-opacity duration-[250ms] hover:opacity-100 relative group py-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
               >
                 <span>{item.label}</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-foreground transition-all duration-300 group-hover:w-full" />
@@ -250,12 +250,12 @@ export function Navbar() {
               onClick={toggleMenu}
               aria-expanded={menuOpen}
               aria-controls="site-menu"
-              className={`p-3.5 rounded-none bg-surface-card border border-border-custom text-foreground transition-all duration-500 hover:scale-105 hover:border-foreground items-center gap-2.5 shadow-sm group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground ${
+              className={`p-3.5 rounded-none bg-surface-card border border-border-custom text-foreground transition-colors duration-300 hover:border-foreground items-center gap-2.5 group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground ${
                 showMenuLinks ? "flex lg:hidden" : "flex"
               }`}
               aria-label="Toggle Fullscreen Menu"
             >
-              <Menu className="w-5 h-5 transition-transform duration-300 group-hover:rotate-180" />
+              <Menu className="w-5 h-5" />
               <span className="hidden sm:inline-block font-mono text-xs font-bold tracking-wider">
                 {menuOpen ? "Close" : "Menu"}
               </span>
@@ -265,7 +265,7 @@ export function Navbar() {
             <Link
               ref={talkRef}
               href="/contact"
-              className={`px-7 py-3 rounded-none bg-foreground text-background font-medium text-base transition-all duration-500 hover:bg-surface-card hover:text-foreground items-center gap-3 shadow-md border border-foreground transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground ${
+              className={`px-7 py-3 rounded-none bg-foreground text-background font-medium text-base transition-[background-color,color,opacity,transform] duration-[400ms] hover:bg-transparent hover:text-foreground items-center gap-3 border border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground ${
                 showMenuLinks
                   ? "opacity-100 translate-y-0 pointer-events-auto flex"
                   : "opacity-0 -translate-y-4 pointer-events-none hidden"
@@ -302,7 +302,7 @@ export function Navbar() {
 
           <button
             onClick={toggleMenu}
-            className="p-4 rounded-none bg-foreground text-background font-bold text-sm transition-all duration-300 hover:scale-110 flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+            className="p-4 rounded-none bg-foreground text-background font-bold text-sm transition-opacity duration-[250ms] hover:opacity-85 flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
           >
             <span>Close</span>
             <X className="w-5 h-5" />
@@ -321,14 +321,12 @@ export function Navbar() {
                 key={item.label}
                 href={item.href}
                 onClick={toggleMenu}
-                className="group flex items-center gap-6 text-4xl sm:text-6xl md:text-7xl lg:text-8xl tracking-tight text-foreground-secondary hover:text-foreground transition-all duration-500 hover:translate-x-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+                className="group flex items-center gap-6 text-4xl sm:text-6xl md:text-7xl lg:text-8xl tracking-tight text-foreground-secondary hover:text-foreground transition-colors duration-[250ms] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
               >
                 <span className="font-mono text-base md:text-xl font-bold opacity-40 group-hover:opacity-100 text-foreground transition-opacity">
                   ({item.number})
                 </span>
-                <span className="group-hover:tracking-wider transition-all duration-500">
-                  {item.label}
-                </span>
+                <span>{item.label}</span>
               </Link>
             ))}
           </div>
