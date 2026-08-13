@@ -54,7 +54,11 @@ export function LenisScrollProvider({ children }: { children: React.ReactNode })
 
   return (
     <LenisContext.Provider value={lenisRef}>
-      <div className="min-h-screen flex flex-col">{children}</div>
+      {/* The route transition animates this wrapper: it survives a navigation,
+          where <main> is replaced wholesale. */}
+      <div data-route-shell="" className="min-h-screen flex flex-col">
+        {children}
+      </div>
     </LenisContext.Provider>
   );
 }

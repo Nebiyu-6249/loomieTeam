@@ -5,10 +5,19 @@
  * clauses; the visual does that job better, and a homepage that reads like a
  * proposal document is a homepage nobody finishes.
  *
- * Imagery is the studio's own system plates — the mark, the type, the grid,
- * the tonal ramp — with one photograph among them. The split is deliberate:
- * the work section shows what was made, this section shows what it was made
- * out of, and between them no image appears twice on the homepage.
+ * Imagery is the studio's own system plates. Each service is illustrated by the
+ * artefact it actually produces — a type specimen for identity, a tonal ramp
+ * for web identity, a campaign in three formats for marketing, a built page for
+ * websites — because a photograph of concrete standing in for marketing design
+ * told a visitor nothing about marketing design.
+ *
+ * `hero` is the same idea one step earlier. The hero's service index drives the
+ * visual beside it, so pointing at a service in the index shows the artefact
+ * that service makes. The index and the image used to be two unrelated things
+ * sharing a viewport; now the index is the control and the image is the state.
+ * Identity is the one service whose two views differ — the hero leads with the
+ * mark and the section shows the type — so the homepage's resting state has no
+ * repeated image, and every match a visitor does see is one they caused.
  */
 
 export interface Service {
@@ -19,6 +28,15 @@ export interface Service {
   image: { src: string; alt: string };
   /** Varies the composition without breaking the system. */
   span: "wide" | "tall" | "square";
+  /** What the hero shows while this service is the active one. */
+  hero: {
+    src: string;
+    alt: string;
+    /** The small header above the hero image. Three terms, widest first. */
+    label: string;
+    /** One short line, and only shown while the service is active. */
+    note: string;
+  };
 }
 
 export const SERVICES: Service[] = [
@@ -31,6 +49,12 @@ export const SERVICES: Service[] = [
       alt: "A type specimen sheet showing the display face at three sizes",
     },
     span: "tall",
+    hero: {
+      src: "/images/work/sheet-mark.jpg",
+      alt: "Loomie's mark drawn on its construction geometry, with the aperture radius and overall measures marked",
+      label: "Identity / Mark / System",
+      note: "Drawn from its own geometry.",
+    },
   },
   {
     number: "02",
@@ -42,26 +66,44 @@ export const SERVICES: Service[] = [
       alt: "A tonal ramp running from deep blue through to warm off-white",
     },
     span: "square",
+    hero: {
+      src: "/images/work/sheet-tone.jpg",
+      alt: "A tonal ramp running from deep blue through to warm off-white, with each step named and specified",
+      label: "Web identity / Type / Tone",
+      note: "One scale, one ramp, everywhere.",
+    },
   },
   {
     number: "03",
     title: "Marketing design",
     summary: "Campaign work built from your system, not beside it.",
     image: {
-      src: "/images/work/concrete.jpg",
-      alt: "Concrete forms meeting at an angle",
+      src: "/images/work/sheet-campaign.jpg",
+      alt: "A campaign sheet: one line and one mark set as a poster, a square and a banner",
     },
     span: "square",
+    hero: {
+      src: "/images/work/sheet-campaign.jpg",
+      alt: "A campaign sheet: one line and one mark set as a poster, a square and a banner, with the measurements they share",
+      label: "Marketing / Campaign / Formats",
+      note: "One line, every format.",
+    },
   },
   {
     number: "04",
     title: "Websites",
     summary: "Fast, legible, and still standing after the tenth new page.",
     image: {
-      src: "/images/work/sheet-grid.jpg",
-      alt: "A twelve-column layout grid with a page part-placed on it",
+      src: "/images/work/sheet-interface.jpg",
+      alt: "A built page shown at desktop and phone width: navigation, headline, photography and a run of studies",
     },
     span: "wide",
+    hero: {
+      src: "/images/work/sheet-interface.jpg",
+      alt: "A built page shown at desktop and phone width: navigation, headline, photography and a run of studies",
+      label: "Websites / Layout / Interface",
+      note: "The system, actually built.",
+    },
   },
 ];
 

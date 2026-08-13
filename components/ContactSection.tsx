@@ -43,13 +43,13 @@ const FAQS = [
 export function ContactSection() {
   return (
     <section className="pt-32 md:pt-40 pb-24 md:pb-32 px-6 md:px-12 max-w-[1700px] mx-auto">
-      <div className="grid grid-cols-12 gap-x-8 gap-y-12">
-        <div className="col-span-12 lg:col-span-5">
-          <h1 className="font-display font-normal text-[13vw] sm:text-7xl lg:text-8xl leading-[0.88] tracking-[-0.03em] text-foreground">
+      <div className="grid grid-cols-12 gap-x-8 gap-y-10">
+        <div className="col-span-12 lg:col-span-4">
+          <h1 className="font-display font-normal text-[12vw] sm:text-6xl lg:text-7xl leading-[0.9] tracking-[-0.03em] text-foreground">
             Start a project
           </h1>
 
-          <p className="mt-7 max-w-sm text-base md:text-lg leading-snug text-foreground-secondary">
+          <p className="mt-6 max-w-sm text-base leading-snug text-foreground-secondary">
             Twenty minutes is usually enough to tell whether we are the right
             studio for it.
           </p>
@@ -57,7 +57,7 @@ export function ContactSection() {
           {/* The email path stays obvious, and stays second. */}
           <a
             href="mailto:hello@loomiestudio.com"
-            className="group mt-10 flex items-center justify-between gap-6 border-t border-b border-border-custom py-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+            className="group mt-8 flex items-center justify-between gap-6 border-t border-b border-border-custom py-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
           >
             <span>
               <span className="block font-mono text-[0.7rem] uppercase tracking-[0.16em] text-foreground-secondary">
@@ -71,12 +71,12 @@ export function ContactSection() {
           </a>
         </div>
 
-        <div className="col-span-12 lg:col-span-6 lg:col-start-7 min-w-0">
+        <div className="col-span-12 lg:col-span-7 lg:col-start-6 min-w-0">
           <BookingPanel />
         </div>
       </div>
 
-      <div className="mt-24 md:mt-32 grid grid-cols-12">
+      <div className="mt-20 md:mt-24 grid grid-cols-12">
         <div className="col-span-12 lg:col-span-8 lg:col-start-5">
           <h2 className="font-mono text-xs uppercase tracking-[0.22em] text-foreground-secondary mb-8">
             Before you write

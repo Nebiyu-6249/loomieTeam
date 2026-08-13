@@ -23,8 +23,8 @@ export function ProjectArchive() {
   const [engaged, setEngaged] = useState<string | null>(null);
 
   return (
-    <section className="px-6 md:px-12 max-w-[1700px] mx-auto pb-24 md:pb-32">
-      <ol className="mt-16 md:mt-24">
+    <section className="px-6 md:px-12 max-w-[1700px] mx-auto pb-20 md:pb-24">
+      <ol className="mt-12 md:mt-16">
         {PROJECTS.map((project, index) => {
           const flipped = index % 2 === 1;
           const dimmed = engaged !== null && engaged !== project.slug;
@@ -42,7 +42,7 @@ export function ProjectArchive() {
                 onMouseLeave={() => setEngaged(null)}
                 onFocus={() => setEngaged(project.slug)}
                 onBlur={() => setEngaged(null)}
-                className="group grid grid-cols-12 items-center gap-x-8 gap-y-6 py-8 md:py-12 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+                className="group grid grid-cols-12 items-center gap-x-8 gap-y-6 py-7 md:py-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
               >
                 <div
                   className={`col-span-12 md:col-span-5 ${
