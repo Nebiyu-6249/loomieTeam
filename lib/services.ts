@@ -11,6 +11,11 @@
  * websites — because a photograph of concrete standing in for marketing design
  * told a visitor nothing about marketing design.
  *
+ * The section reads them as chapters rather than as a gallery, so `span` is
+ * gone: the composition no longer varies per service, one stage shows whichever
+ * service is active, and the varying frame sizes were the thing that made this
+ * read as a second image grid straight after the work archive.
+ *
  * `hero` is the same idea one step earlier. The hero's service index drives the
  * visual beside it, so pointing at a service in the index shows the artefact
  * that service makes. The index and the image used to be two unrelated things
@@ -26,8 +31,6 @@ export interface Service {
   /** One sentence. If it needs two, the visual is not doing enough. */
   summary: string;
   image: { src: string; alt: string };
-  /** Varies the composition without breaking the system. */
-  span: "wide" | "tall" | "square";
   /** What the hero shows while this service is the active one. */
   hero: {
     src: string;
@@ -43,12 +46,11 @@ export const SERVICES: Service[] = [
   {
     number: "01",
     title: "Identity",
-    summary: "A mark that holds at twelve millimetres and at twelve metres.",
+    summary: "Marks and systems made to stay recognisable.",
     image: {
       src: "/images/work/sheet-type.jpg",
       alt: "A type specimen sheet showing the display face at three sizes",
     },
-    span: "tall",
     hero: {
       src: "/images/work/sheet-mark.jpg",
       alt: "Loomie's mark drawn on its construction geometry, with the aperture radius and overall measures marked",
@@ -59,13 +61,11 @@ export const SERVICES: Service[] = [
   {
     number: "02",
     title: "Web identity",
-    summary:
-      "A practical system for type, colour, layout and digital application.",
+    summary: "Rules for type, colour and layout across digital surfaces.",
     image: {
       src: "/images/work/sheet-tone.jpg",
       alt: "A tonal ramp running from deep blue through to warm off-white",
     },
-    span: "square",
     hero: {
       src: "/images/work/sheet-tone.jpg",
       alt: "A tonal ramp running from deep blue through to warm off-white, with each step named and specified",
@@ -76,12 +76,11 @@ export const SERVICES: Service[] = [
   {
     number: "03",
     title: "Marketing design",
-    summary: "Campaign work built from your system, not beside it.",
+    summary: "Campaign work built from the brand, not beside it.",
     image: {
       src: "/images/work/sheet-campaign.jpg",
       alt: "A campaign sheet: one line and one mark set as a poster, a square and a banner",
     },
-    span: "square",
     hero: {
       src: "/images/work/sheet-campaign.jpg",
       alt: "A campaign sheet: one line and one mark set as a poster, a square and a banner, with the measurements they share",
@@ -92,12 +91,11 @@ export const SERVICES: Service[] = [
   {
     number: "04",
     title: "Websites",
-    summary: "Fast, legible, and still standing after the tenth new page.",
+    summary: "Fast, legible sites designed to keep growing.",
     image: {
       src: "/images/work/sheet-interface.jpg",
       alt: "A built page shown at desktop and phone width: navigation, headline, photography and a run of studies",
     },
-    span: "wide",
     hero: {
       src: "/images/work/sheet-interface.jpg",
       alt: "A built page shown at desktop and phone width: navigation, headline, photography and a run of studies",

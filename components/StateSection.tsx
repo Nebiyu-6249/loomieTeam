@@ -151,7 +151,7 @@ export function StateSection() {
     <section
       ref={sectionRef}
       data-state-section=""
-      className="relative h-screen flex flex-col justify-end pb-[16vh] border-t border-border-custom overflow-hidden"
+      className="relative h-screen flex flex-col justify-end pb-[16vh] overflow-hidden"
     >
       {/* The field is drawn into the shared canvas across this whole block. */}
       <SceneAnchor id="state" className="absolute inset-0" />

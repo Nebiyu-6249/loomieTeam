@@ -106,7 +106,7 @@ export function SelectedWork() {
     <section
       id="work"
       data-selected-work=""
-      className="px-6 md:px-12 max-w-[1700px] mx-auto pt-8 md:pt-10 pb-16 md:pb-20"
+      className="px-6 md:px-12 max-w-[1700px] mx-auto pt-8 md:pt-10 pb-10 md:pb-12"
     >
       <div className="flex items-baseline justify-between gap-8 mb-10 md:mb-14">
         <h2 className="font-mono text-xs uppercase tracking-[0.22em] text-foreground-secondary">
