@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { PROJECTS, STATUS_LABEL } from "@/lib/projects";
+import { STUDY_LABEL, type Project } from "@/lib/content-types";
 
 /**
  * The work index.
@@ -19,13 +19,13 @@ import { PROJECTS, STATUS_LABEL } from "@/lib/projects";
  * out of ideas.
  */
 
-export function ProjectArchive() {
+export function ProjectArchive({ projects }: { projects: Project[] }) {
   const [engaged, setEngaged] = useState<string | null>(null);
 
   return (
     <section className="px-6 md:px-12 max-w-[1700px] mx-auto pb-20 md:pb-24">
       <ol className="mt-12 md:mt-16">
-        {PROJECTS.map((project, index) => {
+        {projects.map((project, index) => {
           const flipped = index % 2 === 1;
           const dimmed = engaged !== null && engaged !== project.slug;
 
@@ -96,7 +96,7 @@ export function ProjectArchive() {
                     </div>
                     <div className="flex gap-2">
                       <dt className="sr-only">Status</dt>
-                      <dd className="text-foreground">{STATUS_LABEL[project.status]}</dd>
+                      <dd className="text-foreground">{STUDY_LABEL[project.studyType]}</dd>
                     </div>
                   </dl>
                 </div>

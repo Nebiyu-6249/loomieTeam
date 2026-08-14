@@ -3,6 +3,9 @@
 import React from "react";
 import { ArrowUpRight } from "lucide-react";
 import { BookingPanel } from "./BookingPanel";
+import { EnquiryForm } from "./EnquiryForm";
+import { SocialLinks } from "./SocialLinks";
+import type { Service, Settings, SocialLink } from "@/lib/content-types";
 
 /**
  * Start a project: two ways in, and nothing else.
@@ -40,7 +43,15 @@ const FAQS = [
   },
 ];
 
-export function ContactSection() {
+export function ContactSection({
+  services,
+  settings,
+  socials,
+}: {
+  services: Service[];
+  settings: Settings;
+  socials: SocialLink[];
+}) {
   return (
     <section className="pt-32 md:pt-40 pb-24 md:pb-32 px-6 md:px-12 max-w-[1700px] mx-auto">
       <div className="grid grid-cols-12 gap-x-8 gap-y-10">
@@ -50,13 +61,14 @@ export function ContactSection() {
           </h1>
 
           <p className="mt-6 max-w-sm text-base leading-snug text-foreground-secondary">
-            Twenty minutes is usually enough to tell whether we are the right
-            studio for it.
+            {settings.availability_text}
           </p>
 
-          {/* The email path stays obvious, and stays second. */}
+          {/* The email path stays obvious, and stays second. The address is a
+              setting rather than a string in this file, so changing it is one
+              edit in the admin instead of a deploy. */}
           <a
-            href="mailto:hello@loomiestudio.com"
+            href={`mailto:${settings.contact_email}`}
             className="group mt-8 flex items-center justify-between gap-6 border-t border-b border-border-custom py-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
           >
             <span>
@@ -64,15 +76,20 @@ export function ContactSection() {
                 Prefer email?
               </span>
               <span className="mt-1 block text-base md:text-lg text-foreground break-all">
-                hello@loomiestudio.com
+                {settings.contact_email}
               </span>
             </span>
             <ArrowUpRight className="w-5 h-5 shrink-0 text-foreground transition-transform duration-[250ms] group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </a>
+
+          <SocialLinks links={socials} className="mt-12" />
         </div>
 
         <div className="col-span-12 lg:col-span-7 lg:col-start-6 min-w-0">
-          <BookingPanel />
+          <BookingPanel services={services} />
+          <div className="mt-14 md:mt-16">
+            <EnquiryForm services={services} />
+          </div>
         </div>
       </div>
 

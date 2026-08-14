@@ -5,7 +5,7 @@ import Image from "next/image";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
-import { SERVICES, type Service } from "@/lib/services";
+import type { Service } from "@/lib/content-types";
 
 /**
  * What the studio does, as a chapter rather than a second gallery.
@@ -110,9 +110,11 @@ const readWide = () => window.matchMedia(WIDE).matches;
 const readWideServer = () => false;
 
 export function ServicesSection({
+  services,
   /** Set on the homepage, where Snow → River → Light follows this section. */
   bridgeToState = false,
 }: {
+  services: Service[];
   bridgeToState?: boolean;
 }) {
   const prefersReducedMotion = usePrefersReducedMotion();
@@ -152,8 +154,8 @@ export function ServicesSection({
       end: "bottom bottom",
       onUpdate: (self) => {
         const index = Math.min(
-          SERVICES.length - 1,
-          Math.floor(self.progress * SERVICES.length)
+          services.length - 1,
+          Math.floor(self.progress * services.length)
         );
         if (index !== previous.current) setActive(index);
 
@@ -174,7 +176,7 @@ export function ServicesSection({
     });
 
     return () => trigger.kill();
-  }, [bridgeToState, stage]);
+  }, [bridgeToState, stage, services.length]);
 
   /* ── The visual answers ───────────────────────────────────────────────── */
   useEffect(() => {
@@ -203,8 +205,9 @@ export function ServicesSection({
   }, [active]);
 
   /** Roving focus: the list is one tab stop and the arrows move inside it. */
-  const onKey = useCallback((event: React.KeyboardEvent, index: number) => {
-    const last = SERVICES.length - 1;
+  const onKey = useCallback(
+    (event: React.KeyboardEvent, index: number) => {
+    const last = services.length - 1;
     let next: number | null = null;
 
     if (event.key === "ArrowDown" || event.key === "ArrowRight") next = index === last ? 0 : index + 1;
@@ -216,7 +219,9 @@ export function ServicesSection({
     event.preventDefault();
     setActive(next);
     buttonsRef.current[next]?.focus();
-  }, []);
+    },
+    [services.length]
+  );
 
   /**
    * The section element itself never unmounts — only its children swap.
@@ -239,8 +244,8 @@ export function ServicesSection({
       >
         <Intro />
         <ul className="mt-12">
-          {SERVICES.map((service) => (
-            <StackedService key={service.number} service={service} />
+          {services.map((service) => (
+            <StackedService key={service.id} service={service} />
           ))}
         </ul>
       </section>
@@ -277,10 +282,10 @@ export function ServicesSection({
               aria-orientation="vertical"
               className="col-span-5"
             >
-              {SERVICES.map((service, index) => {
+              {services.map((service, index) => {
                 const selected = index === active;
                 return (
-                  <li key={service.number} role="presentation">
+                  <li key={service.id} role="presentation">
                     <button
                       ref={(node) => {
                         buttonsRef.current[index] = node;
@@ -348,9 +353,9 @@ export function ServicesSection({
               aria-labelledby={`service-${active}`}
               className="col-span-7 relative aspect-[4/3] overflow-hidden bg-surface-card"
             >
-              {SERVICES.map((service, index) => (
+              {services.map((service, index) => (
                 <div
-                  key={service.number}
+                  key={service.id}
                   ref={(node) => {
                     platesRef.current[index] = node;
                   }}
