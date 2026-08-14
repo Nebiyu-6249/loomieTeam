@@ -58,11 +58,15 @@ function parseSelect(select) {
       ? head.split(":").map((s) => s.trim())
       : [head, head];
 
+    // Recursive, because an embed can contain an embed: the projects query
+    // asks for project_media, and each of those for its media row.
+    const nested = parseSelect(inner);
     embeds.push({
       alias,
       /** A foreign key column on this row, or a child table name. */
       source,
-      columns: inner.split(",").map((c) => c.trim()),
+      columns: nested.columns,
+      embeds: nested.embeds,
     });
   };
 
@@ -329,13 +333,19 @@ export async function startPostgrestStub(port, connectionString, options = {}) {
     /** The table a foreign key on this table points at, or undefined. */
     const target = (column) => foreignKeys.get(`${table}.${column}`);
 
-    /** Resolves embedded relations one row at a time. Correct, not fast. */
-    const expand = async (rows) => {
-      if (embeds.length === 0) return rows;
+    /**
+     * Resolves embedded relations one row at a time. Correct, not fast.
+     *
+     * Recursive: a child table embed resolves its own embeds against its own
+     * table, which is how `project_media ( ..., media:media_id ( … ) )` works.
+     */
+    const expand = async (rows, fromTable, list) => {
+      if (list.length === 0) return rows;
 
       for (const row of rows) {
-        for (const embed of embeds) {
-          const referenced = target(embed.source);
+        for (const embed of list) {
+          const referenced = foreignKeys.get(`${fromTable}.${embed.source}`);
+
           if (referenced) {
             // Foreign key embed: services:service_id ( slug, title )
             const id = row[embed.source];
@@ -350,18 +360,33 @@ export async function startPostgrestStub(port, connectionString, options = {}) {
               [id]
             );
             row[embed.alias] = child.rows[0] ?? null;
-          } else {
-            // Child table embed: project_media ( role, alt, ... )
-            const child = await client.query(
-              `select ${embed.columns
-                .filter((c) => !c.includes("("))
-                .map((c) => `"${c}"`)
-                .join(", ")}
-                 from ${embed.source} where ${table.replace(/s$/, "")}_id = $1`,
-              [row.id]
-            );
-            row[embed.alias] = child.rows;
+            continue;
           }
+
+          // Child table embed: project_media ( role, alt, … )
+          const key = `${fromTable.replace(/s$/, "")}_id`;
+          const wanted = new Set(embed.columns);
+          for (const nested of embed.embeds) {
+            if (foreignKeys.get(`${embed.source}.${nested.source}`)) wanted.add(nested.source);
+          }
+
+          const child = await client.query(
+            `select ${[...wanted].map((c) => `"${c}"`).join(", ")}
+               from ${embed.source} where ${key} = $1`,
+            [row.id]
+          );
+
+          await expand(child.rows, embed.source, embed.embeds);
+
+          // Strip the keys that were only selected so the nested embed could
+          // be followed.
+          for (const child_ of child.rows) {
+            for (const nested of embed.embeds) {
+              if (!embed.columns.includes(nested.source)) delete child_[nested.source];
+            }
+          }
+
+          row[embed.alias] = child.rows;
         }
       }
       return rows;
@@ -425,7 +450,7 @@ export async function startPostgrestStub(port, connectionString, options = {}) {
             `select ${projection()} from ${table} ${where}`,
             values
           );
-          await expand(rows);
+          await expand(rows, table, embeds);
           tidy(rows);
           return send(200, rows, { "Content-Range": range });
         }
@@ -444,7 +469,7 @@ export async function startPostgrestStub(port, connectionString, options = {}) {
           `select ${projection()} from ${table} ${where} ${orderSql}`,
           values
         );
-        await expand(rows);
+        await expand(rows, table, embeds);
         tidy(rows);
         if (single) {
           if (rows.length > 1) {
@@ -497,7 +522,7 @@ export async function startPostgrestStub(port, connectionString, options = {}) {
         }
 
         if (!wantsRows) return send(201, undefined);
-        await expand(inserted);
+        await expand(inserted, table, embeds);
         tidy(inserted);
         return send(201, single ? (inserted[0] ?? null) : inserted);
       }
