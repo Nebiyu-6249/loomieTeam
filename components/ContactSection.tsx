@@ -3,6 +3,7 @@
 import React from "react";
 import { ArrowUpRight } from "lucide-react";
 import { BookingPanel } from "./BookingPanel";
+import { EnquiryForm } from "./EnquiryForm";
 import { SocialLinks } from "./SocialLinks";
 import type { Service, Settings, SocialLink } from "@/lib/content-types";
 
@@ -86,6 +87,9 @@ export function ContactSection({
 
         <div className="col-span-12 lg:col-span-7 lg:col-start-6 min-w-0">
           <BookingPanel services={services} />
+          <div className="mt-14 md:mt-16">
+            <EnquiryForm services={services} />
+          </div>
         </div>
       </div>
 

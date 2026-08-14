@@ -386,10 +386,14 @@ export function BookingPanel({ services }: { services: Service[] }) {
                   <option value="" className="bg-surface text-foreground">
                     Not sure yet
                   </option>
+                  {/* The slug is submitted, the title is shown. Renaming a
+                      service in the admin then does not invalidate a form
+                      somebody already has open, and the slug is what the
+                      booking row keys its foreign key on. */}
                   {services.map((service) => (
                     <option
                       key={service.id}
-                      value={service.title}
+                      value={service.id}
                       className="bg-surface text-foreground"
                     >
                       {service.title}

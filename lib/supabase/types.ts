@@ -10,6 +10,17 @@
  *   npx supabase gen types typescript --project-id <id> > lib/supabase/types.ts
  */
 
+/**
+ * Row shapes are type aliases, not interfaces, and that is load-bearing.
+ *
+ * postgrest-js constrains every table to `Record<string, unknown>`. TypeScript
+ * gives object type aliases an implicit index signature and interfaces none, so
+ * an interface fails that constraint, the schema stops matching GenericSchema,
+ * and every table silently resolves to `never` — which surfaces as "not
+ * assignable to type never" on the first insert rather than anywhere near the
+ * cause. Supabase's own generator emits aliases for the same reason.
+ */
+
 export type AdminRole = "owner" | "admin" | "editor";
 export type ProjectStatus = "placeholder" | "real" | "archived";
 export type ProjectStudyType = "concept" | "client";
@@ -24,7 +35,7 @@ export type BookingStatus =
 export type EnquiryStatus = "new" | "in_progress" | "replied" | "closed" | "spam";
 export type SocialPlatform = "linkedin" | "instagram" | "twitter";
 
-export interface MediaRow {
+export type MediaRow = {
   id: string;
   bucket: string;
   path: string;
@@ -38,7 +49,7 @@ export interface MediaRow {
   uploaded_by: string | null;
 }
 
-export interface AdminProfileRow {
+export type AdminProfileRow = {
   id: string;
   auth_user_id: string;
   name: string;
@@ -49,7 +60,7 @@ export interface AdminProfileRow {
   updated_at: string;
 }
 
-export interface ProjectRow {
+export type ProjectRow = {
   id: string;
   slug: string;
   index: string;
@@ -68,13 +79,13 @@ export interface ProjectRow {
   updated_at: string;
 }
 
-export interface ProjectDisciplineRow {
+export type ProjectDisciplineRow = {
   project_id: string;
   discipline: string;
   display_order: number;
 }
 
-export interface ProjectSectionRow {
+export type ProjectSectionRow = {
   id: string;
   project_id: string;
   kind: ProjectSectionKind;
@@ -83,7 +94,7 @@ export interface ProjectSectionRow {
   display_order: number;
 }
 
-export interface ProjectMediaRow {
+export type ProjectMediaRow = {
   id: string;
   project_id: string;
   media_id: string;
@@ -93,7 +104,7 @@ export interface ProjectMediaRow {
   display_order: number;
 }
 
-export interface ServiceRow {
+export type ServiceRow = {
   id: string;
   slug: string;
   number: string;
@@ -109,7 +120,7 @@ export interface ServiceRow {
   updated_at: string;
 }
 
-export interface TeamMemberRow {
+export type TeamMemberRow = {
   id: string;
   slug: string;
   name: string;
@@ -127,7 +138,7 @@ export interface TeamMemberRow {
   updated_at: string;
 }
 
-export interface SectorRow {
+export type SectorRow = {
   id: string;
   slug: string;
   number: string;
@@ -141,7 +152,7 @@ export interface SectorRow {
   updated_at: string;
 }
 
-export interface EngagementRow {
+export type EngagementRow = {
   id: string;
   number: string;
   title: string;
@@ -153,7 +164,7 @@ export interface EngagementRow {
   updated_at: string;
 }
 
-export interface PartnerRow {
+export type PartnerRow = {
   id: string;
   name: string;
   logo_media_id: string | null;
@@ -165,7 +176,7 @@ export interface PartnerRow {
   updated_at: string;
 }
 
-export interface SocialLinkRow {
+export type SocialLinkRow = {
   id: string;
   platform: SocialPlatform;
   label: string;
@@ -176,14 +187,14 @@ export interface SocialLinkRow {
   updated_at: string;
 }
 
-export interface SiteSettingRow {
+export type SiteSettingRow = {
   key: string;
   value: string | null;
   updated_at: string;
   updated_by: string | null;
 }
 
-export interface BookingRow {
+export type BookingRow = {
   id: string;
   booking_code: string;
   name: string;
@@ -200,7 +211,7 @@ export interface BookingRow {
   updated_at: string;
 }
 
-export interface EnquiryRow {
+export type EnquiryRow = {
   id: string;
   name: string;
   email: string;
@@ -212,7 +223,7 @@ export interface EnquiryRow {
   updated_at: string;
 }
 
-export interface AuditLogRow {
+export type AuditLogRow = {
   id: string;
   actor_id: string | null;
   action: string;
@@ -222,39 +233,113 @@ export interface AuditLogRow {
   created_at: string;
 }
 
-/** Insert and update shapes: the row minus what the database fills in. */
-type Generated = "id" | "created_at" | "updated_at";
-type Insert<T, K extends keyof T = never> = Omit<T, Extract<keyof T, Generated> | K> &
-  Partial<Pick<T, Extract<keyof T, Generated>>>;
+/* ── Insert and update shapes ──────────────────────────────────────────────
+ *
+ * An insert is the row minus what the database supplies. Two kinds of that:
+ * columns it generates (id and the timestamps) and columns it defaults. Both
+ * end up optional; the distinction is only that the second list is per-table,
+ * because it is a fact about the schema rather than a convention.
+ *
+ * Keeping these accurate is what makes `insert({...})` catch a genuinely
+ * missing column instead of demanding twelve fields Postgres would have filled
+ * in itself.
+ */
 
-interface Table<Row, Ins = Insert<Row>> {
+type Generated = "id" | "created_at" | "updated_at";
+
+type Insert<Row, Defaulted extends keyof Row = never> = Omit<
+  Row,
+  Extract<keyof Row, Generated> | Defaulted
+> &
+  Partial<Pick<Row, Extract<keyof Row, Generated> | Defaulted>>;
+
+type Table<Row, Ins = Insert<Row>> = {
   Row: Row;
   Insert: Ins;
   Update: Partial<Ins>;
   Relationships: [];
-}
+};
 
-export interface Database {
+/** Shorthand: a table whose insert may omit these defaulted columns. */
+type WithDefaults<Row, Defaulted extends keyof Row> = Table<Row, Insert<Row, Defaulted>>;
+
+export type Database = {
   public: {
     Tables: {
-      media: Table<MediaRow>;
-      admin_profiles: Table<AdminProfileRow>;
-      projects: Table<ProjectRow>;
-      project_disciplines: Table<ProjectDisciplineRow, ProjectDisciplineRow>;
-      project_sections: Table<ProjectSectionRow>;
-      project_media: Table<ProjectMediaRow>;
-      services: Table<ServiceRow>;
-      team_members: Table<TeamMemberRow>;
-      sectors: Table<SectorRow>;
-      engagements: Table<EngagementRow>;
-      partners: Table<PartnerRow>;
-      social_links: Table<SocialLinkRow>;
-      site_settings: Table<SiteSettingRow, SiteSettingRow>;
-      bookings: Table<BookingRow>;
-      enquiries: Table<EnquiryRow>;
-      audit_log: Table<AuditLogRow>;
+      media: WithDefaults<MediaRow, "alt" | "public_url" | "width" | "height" | "uploaded_by">;
+      admin_profiles: WithDefaults<AdminProfileRow, "role" | "is_active">;
+      projects: WithDefaults<
+        ProjectRow,
+        | "status"
+        | "study_type"
+        | "sector"
+        | "year"
+        | "summary"
+        | "hero_image_id"
+        | "cover_image_id"
+        | "display_order"
+        | "featured"
+        | "published"
+      >;
+      project_disciplines: Table<
+        ProjectDisciplineRow,
+        Insert<ProjectDisciplineRow, "display_order">
+      >;
+      project_sections: WithDefaults<ProjectSectionRow, "heading" | "body" | "display_order">;
+      project_media: WithDefaults<
+        ProjectMediaRow,
+        "role" | "alt" | "caption" | "display_order"
+      >;
+      services: WithDefaults<
+        ServiceRow,
+        | "short_description"
+        | "hero_label"
+        | "hero_description"
+        | "visual_media_id"
+        | "hero_media_id"
+        | "display_order"
+        | "published"
+      >;
+      team_members: WithDefaults<
+        TeamMemberRow,
+        | "role"
+        | "short_bio"
+        | "long_bio"
+        | "photo_media_id"
+        | "linkedin_url"
+        | "instagram_url"
+        | "twitter_url"
+        | "email"
+        | "display_order"
+        | "published"
+      >;
+      sectors: WithDefaults<
+        SectorRow,
+        "summary" | "problem" | "visual_media_id" | "display_order" | "published"
+      >;
+      engagements: WithDefaults<
+        EngagementRow,
+        "duration" | "description" | "display_order" | "published"
+      >;
+      partners: WithDefaults<
+        PartnerRow,
+        "logo_media_id" | "url" | "display_order" | "placeholder" | "published"
+      >;
+      social_links: WithDefaults<SocialLinkRow, "label" | "url" | "display_order" | "enabled">;
+      site_settings: Table<SiteSettingRow, Insert<SiteSettingRow, "value" | "updated_by">>;
+      bookings: WithDefaults<
+        BookingRow,
+        "service_id" | "note" | "status" | "studio_notified" | "visitor_confirmed"
+      >;
+      enquiries: WithDefaults<EnquiryRow, "company" | "service_id" | "status">;
+      audit_log: WithDefaults<AuditLogRow, "actor_id" | "entity_id" | "metadata">;
     };
-    Views: Record<string, never>;
+    // `{ [_ in never]: never }` rather than `Record<string, never>`: the latter
+    // claims every possible name exists as a view of type never, which makes
+    // .from("bookings") resolve against a phantom view instead of the table and
+    // types every insert as never. This is the shape Supabase's own generator
+    // emits, for the same reason.
+    Views: { [_ in never]: never };
     Functions: {
       is_admin: { Args: Record<string, never>; Returns: boolean };
       can_administer: { Args: Record<string, never>; Returns: boolean };
@@ -270,6 +355,6 @@ export interface Database {
       enquiry_status: EnquiryStatus;
       social_platform: SocialPlatform;
     };
-    CompositeTypes: Record<string, never>;
+    CompositeTypes: { [_ in never]: never };
   };
 }
