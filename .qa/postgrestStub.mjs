@@ -112,26 +112,190 @@ async function readForeignKeys(client) {
   return map;
 }
 
-export async function startPostgrestStub(port, connectionString) {
-  const client = new pg.Client({ connectionString });
-  await client.connect();
-  const foreignKeys = await readForeignKeys(client);
+/**
+ * The auth half.
+ *
+ * Supabase Auth is a separate service from PostgREST, on the same origin under
+ * /auth/v1. supabase-js calls it to exchange a password for a token and to
+ * validate that token afterwards, so the admin cannot be exercised end to end
+ * without it. Tokens here are opaque strings mapped to a user id in memory —
+ * no JWT, no signature, no expiry. That is fine for a test double and would be
+ * a catastrophe anywhere else, which is why this file lives in .qa.
+ */
+function makeAuth(users) {
+  const tokens = new Map();
+  const refreshTokens = new Map();
+
+  const issue = (found) => {
+    const token = `stub-${found.id}-${Math.random().toString(36).slice(2)}`;
+    const refresh = `refresh-${token}`;
+    tokens.set(token, found);
+    refreshTokens.set(refresh, found);
+    return {
+      access_token: token,
+      token_type: "bearer",
+      expires_in: 3600,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      refresh_token: refresh,
+      user: {
+        id: found.id,
+        email: found.email,
+        aud: "authenticated",
+        role: "authenticated",
+        app_metadata: {},
+        user_metadata: {},
+      },
+    };
+  };
+
+  return {
+    /** Adds a user the stub will accept. */
+    add(id, email, password) {
+      users.set(email.toLowerCase(), { id, email, password });
+    },
+
+    userFor(header) {
+      const token = (header ?? "").replace(/^Bearer /, "");
+      return tokens.get(token) ?? null;
+    },
+
+    handle(url, request, body, send) {
+      if (url.pathname === "/auth/v1/token") {
+        const grant = url.searchParams.get("grant_type") ?? "password";
+
+        // supabase-js cannot read an expiry out of an opaque token, so it
+        // refreshes on nearly every server-side call. Without this branch the
+        // refresh fails, the client discards the session, and the symptom is an
+        // administrator being bounced to the sign-in page halfway through a save.
+        if (grant === "refresh_token") {
+          const found = refreshTokens.get(String(body?.refresh_token ?? ""));
+          if (process.env.STUB_DEBUG) {
+            console.log("[stub-auth] refresh", String(body?.refresh_token).slice(0, 24), "->", found ? "ok" : "UNKNOWN");
+          }
+          if (!found) {
+            return send(400, {
+              error: "invalid_grant",
+              error_description: "Invalid Refresh Token",
+            });
+          }
+          return send(200, issue(found));
+        }
+
+        const found = users.get(String(body?.email ?? "").toLowerCase());
+        if (!found || found.password !== body?.password) {
+          return send(400, {
+            error: "invalid_grant",
+            error_description: "Invalid login credentials",
+          });
+        }
+        return send(200, issue(found));
+      }
+
+      if (url.pathname === "/auth/v1/user") {
+        const found = this.userFor(request.headers.authorization);
+        if (!found) return send(401, { message: "invalid claim" });
+        return send(200, {
+          id: found.id,
+          email: found.email,
+          aud: "authenticated",
+          role: "authenticated",
+          app_metadata: {},
+          user_metadata: {},
+        });
+      }
+
+      if (url.pathname === "/auth/v1/logout") {
+        const token = (request.headers.authorization ?? "").replace(/^Bearer /, "");
+        tokens.delete(token);
+        return send(204, undefined);
+      }
+
+      return false;
+    },
+  };
+}
+
+export async function startPostgrestStub(port, connectionString, options = {}) {
+  /**
+   * A pool, not a single connection.
+   *
+   * Every request opens a transaction and does `set local role`, and the
+   * application fires several in parallel — a Server Action revalidates while
+   * it authenticates while it reads a profile. Sharing one connection meant
+   * those transactions interleaved: request B's `begin` landed inside request
+   * A's, the roles crossed, and the symptom was an administrator being bounced
+   * to the sign-in page mid-save. One connection per request, checked out for
+   * its lifetime.
+   */
+  const pool = new pg.Pool({ connectionString, max: 12 });
+  const setup = await pool.connect();
+  const foreignKeys = await readForeignKeys(setup);
+  setup.release();
+
+  const serviceKey = options.serviceKey ?? "stub-secret";
+  const users = new Map();
+  const auth = makeAuth(users);
 
   const server = http.createServer(async (request, response) => {
     const url = new URL(request.url, `http://localhost:${port}`);
-    const send = (status, body, headers = {}) => {
-      const payload = body === undefined ? "" : JSON.stringify(body);
-      response.writeHead(status, {
-        "Content-Type": "application/json",
-        ...headers,
-      });
-      response.end(payload);
+    const client = await pool.connect();
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      client.release();
     };
+    let inTransaction = false;
+    const send = (status, body, headers = {}) => {
+      // Settles the transaction before answering, so a client that reads the
+      // response and immediately issues another request cannot race it.
+      const settle = inTransaction
+        ? client.query(status >= 400 ? "rollback" : "commit").catch(() => {})
+        : Promise.resolve();
+      inTransaction = false;
+
+      return settle.then(() => {
+        release();
+        const payload = body === undefined ? "" : JSON.stringify(body);
+        response.writeHead(status, { "Content-Type": "application/json", ...headers });
+        response.end(payload);
+      });
+    };
+
+    if (url.pathname.startsWith("/auth/v1/")) {
+      if (process.env.STUB_DEBUG) {
+        console.log("[stub-auth]", request.method, url.pathname + url.search);
+      }
+      const chunks = [];
+      for await (const chunk of request) chunks.push(chunk);
+      const raw = Buffer.concat(chunks).toString("utf8");
+      const handled = auth.handle(url, request, raw ? JSON.parse(raw) : null, send);
+      if (handled !== false) return handled;
+      return send(404, { message: "Not found" });
+    }
 
     // /rest/v1/<table>
     const match = url.pathname.match(/^\/rest\/v1\/([a-z_]+)$/);
     if (!match) return send(404, { message: "Not found" });
     const table = match[1];
+
+    /**
+     * Which Postgres role this request runs as.
+     *
+     * This is the part that makes the stub worth having. The service key gets
+     * service_role, which bypasses row level security exactly as it does in
+     * production; a signed-in administrator gets `authenticated` with their own
+     * auth.uid(), so every policy in supabase/migrations/0002_rls.sql applies to
+     * what the admin screens actually do. An editor is refused by the database,
+     * not by the interface.
+     */
+    const bearer = (request.headers.authorization ?? "").replace(/^Bearer /, "");
+    const signedIn = auth.userFor(request.headers.authorization);
+    const identity = bearer === serviceKey
+      ? { role: "service_role", uid: null }
+      : signedIn
+        ? { role: "authenticated", uid: signedIn.id }
+        : { role: "anon", uid: null };
 
     const params = url.searchParams;
     const { columns, embeds } = parseSelect(params.get("select"));
@@ -228,7 +392,47 @@ export async function startPostgrestStub(port, connectionString) {
       return rows;
     };
 
+    /**
+     * `Prefer: count=exact` asks for the total, and supabase-js's `head: true`
+     * sends HEAD so no rows come back with it. PostgREST answers both in a
+     * Content-Range header; the admin overview reads nothing else, so a stub
+     * that ignored this reported every count as zero.
+     */
+    const wantsCount = (request.headers.prefer ?? "").includes("count=");
+
     try {
+      await client.query("begin");
+      inTransaction = true;
+      await client.query(`set local role ${identity.role}`);
+      await client.query("select set_config('request.jwt.claim.sub', $1, true)", [
+        identity.uid ?? "",
+      ]);
+
+      if (request.method === "GET" || request.method === "HEAD") {
+        if (wantsCount) {
+          const { rows: counted } = await client.query(
+            `select count(*)::int as n from ${table} ${where}`,
+            values
+          );
+          const total = counted[0].n;
+          const range = total === 0 ? "*/0" : `0-${total - 1}/${total}`;
+
+          if (request.method === "HEAD") {
+            return send(200, undefined, { "Content-Range": range });
+          }
+
+          const { rows } = await client.query(
+            `select ${projection()} from ${table} ${where}`,
+            values
+          );
+          await expand(rows);
+          tidy(rows);
+          return send(200, rows, { "Content-Range": range });
+        }
+
+        if (request.method === "HEAD") return send(200, undefined);
+      }
+
       if (request.method === "GET") {
         const order = params.get("order");
         const orderSql = order
@@ -300,8 +504,9 @@ export async function startPostgrestStub(port, connectionString) {
       return send(405, { message: "Method not allowed" });
     } catch (error) {
       // PostgREST hands the Postgres SQLSTATE straight through, which is what
-      // lib/bookingStore checks for: 23505 is the slot already being taken.
-      return send(error.code === "23505" ? 409 : 400, {
+      // lib/bookingStore checks for: 23505 is the slot already being taken, and
+      // 42501 is row level security refusing a write outright.
+      return send(error.code === "23505" ? 409 : error.code === "42501" ? 403 : 400, {
         code: error.code ?? "unknown",
         message: error.message,
         details: error.detail ?? null,
@@ -314,13 +519,17 @@ export async function startPostgrestStub(port, connectionString) {
 
   return {
     url: `http://localhost:${port}`,
+    serviceKey,
+    /** Registers an account the stub's /auth/v1/token will accept. */
+    addUser: (id, email, password) => auth.add(id, email, password),
+    query: (sql, params) => pool.query(sql, params),
     async reset() {
-      await client.query("delete from bookings");
-      await client.query("delete from enquiries");
+      await pool.query("delete from bookings");
+      await pool.query("delete from enquiries");
     },
     async close() {
       await new Promise((resolve) => server.close(resolve));
-      await client.end();
+      await pool.end();
     },
   };
 }

@@ -86,43 +86,54 @@ alter table audit_log enable row level security;
 
 -- ── Published content: readable by anyone ──────────────────────────────────
 
+drop policy if exists projects_public_read on projects;
 create policy projects_public_read on projects
   for select using (published);
 
+drop policy if exists services_public_read on services;
 create policy services_public_read on services
   for select using (published);
 
+drop policy if exists team_public_read on team_members;
 create policy team_public_read on team_members
   for select using (published);
 
+drop policy if exists sectors_public_read on sectors;
 create policy sectors_public_read on sectors
   for select using (published);
 
+drop policy if exists engagements_public_read on engagements;
 create policy engagements_public_read on engagements
   for select using (published);
 
+drop policy if exists partners_public_read on partners;
 create policy partners_public_read on partners
   for select using (published);
 
 /** A link is public only when it is switched on and has somewhere to go. */
+drop policy if exists social_public_read on social_links;
 create policy social_public_read on social_links
   for select using (enabled and url is not null);
 
+drop policy if exists settings_public_read on site_settings;
 create policy settings_public_read on site_settings
   for select using (true);
 
 -- Children follow their parent: visible exactly when the project is.
 
+drop policy if exists project_disciplines_public_read on project_disciplines;
 create policy project_disciplines_public_read on project_disciplines
   for select using (
     exists (select 1 from projects p where p.id = project_id and p.published)
   );
 
+drop policy if exists project_sections_public_read on project_sections;
 create policy project_sections_public_read on project_sections
   for select using (
     exists (select 1 from projects p where p.id = project_id and p.published)
   );
 
+drop policy if exists project_media_public_read on project_media;
 create policy project_media_public_read on project_media
   for select using (
     exists (select 1 from projects p where p.id = project_id and p.published)
@@ -134,6 +145,7 @@ create policy project_media_public_read on project_media
  * Not "all media is public": an image uploaded but not yet placed, or attached
  * only to a draft, stays unreadable until the thing that uses it is live.
  */
+drop policy if exists media_public_read on media;
 create policy media_public_read on media
   for select using (
     exists (
@@ -158,58 +170,75 @@ create policy media_public_read on media
 -- One policy per table for all commands. Editors and admins both edit content;
 -- the distinction between them is settings and administrators, below.
 
+drop policy if exists projects_admin_all on projects;
 create policy projects_admin_all on projects
   for all using (public.is_admin()) with check (public.is_admin());
 
+drop policy if exists project_disciplines_admin_all on project_disciplines;
 create policy project_disciplines_admin_all on project_disciplines
   for all using (public.is_admin()) with check (public.is_admin());
 
+drop policy if exists project_sections_admin_all on project_sections;
 create policy project_sections_admin_all on project_sections
   for all using (public.is_admin()) with check (public.is_admin());
 
+drop policy if exists project_media_admin_all on project_media;
 create policy project_media_admin_all on project_media
   for all using (public.is_admin()) with check (public.is_admin());
 
+drop policy if exists services_admin_all on services;
 create policy services_admin_all on services
   for all using (public.is_admin()) with check (public.is_admin());
 
+drop policy if exists team_admin_all on team_members;
 create policy team_admin_all on team_members
   for all using (public.is_admin()) with check (public.is_admin());
 
+drop policy if exists sectors_admin_all on sectors;
 create policy sectors_admin_all on sectors
   for all using (public.is_admin()) with check (public.is_admin());
 
+drop policy if exists engagements_admin_all on engagements;
 create policy engagements_admin_all on engagements
   for all using (public.is_admin()) with check (public.is_admin());
 
+drop policy if exists partners_admin_all on partners;
 create policy partners_admin_all on partners
   for all using (public.is_admin()) with check (public.is_admin());
 
+drop policy if exists media_admin_all on media;
 create policy media_admin_all on media
   for all using (public.is_admin()) with check (public.is_admin());
 
 -- ── Administrators: operations ─────────────────────────────────────────────
 
+drop policy if exists bookings_admin_read on bookings;
 create policy bookings_admin_read on bookings
   for select using (public.is_admin());
 
+drop policy if exists bookings_admin_write on bookings;
 create policy bookings_admin_write on bookings
   for update using (public.is_admin()) with check (public.is_admin());
 
+drop policy if exists enquiries_admin_read on enquiries;
 create policy enquiries_admin_read on enquiries
   for select using (public.is_admin());
 
+drop policy if exists enquiries_admin_write on enquiries;
 create policy enquiries_admin_write on enquiries
   for update using (public.is_admin()) with check (public.is_admin());
 
+drop policy if exists audit_admin_read on audit_log;
 create policy audit_admin_read on audit_log
   for select using (public.is_admin());
 
 -- ── Owners and admins only ─────────────────────────────────────────────────
 
+drop policy if exists social_admin_all on social_links;
 create policy social_admin_all on social_links
   for all using (public.can_administer()) with check (public.can_administer());
 
+drop policy if exists settings_admin_write on site_settings;
 create policy settings_admin_write on site_settings
   for all using (public.can_administer()) with check (public.can_administer());
 
@@ -217,9 +246,11 @@ create policy settings_admin_write on site_settings
  * An administrator may always read their own row — the app needs it on every
  * request to know who is signed in — and owners and admins manage the list.
  */
+drop policy if exists admin_profiles_self_read on admin_profiles;
 create policy admin_profiles_self_read on admin_profiles
   for select using (auth_user_id = auth.uid() or public.can_administer());
 
+drop policy if exists admin_profiles_manage on admin_profiles;
 create policy admin_profiles_manage on admin_profiles
   for all using (public.can_administer()) with check (public.can_administer());
 

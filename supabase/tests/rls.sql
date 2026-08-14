@@ -114,6 +114,24 @@ end;
 $$;
 
 -- ── Fixtures ───────────────────────────────────────────────────────────────
+--
+-- Cleared first, so the suite can be run twice against the same database. It
+-- removes only what it created; anything else in these tables is left alone.
+
+delete from project_media;
+delete from project_sections;
+delete from project_disciplines;
+delete from projects where slug in ('published-study', 'draft-study');
+delete from media where bucket = 'projects';
+delete from admin_profiles
+  where email in ('owner@example.com', 'editor@example.com', 'dormant@example.com',
+                  'intruder@example.com', 'promoted@example.com', 'new@example.com');
+delete from services where slug = 'identity';
+delete from team_members where slug in ('published-person', 'hidden-person');
+delete from social_links;
+delete from site_settings where key in ('contact_email', 'favourite_colour');
+delete from bookings;
+delete from enquiries;
 
 do $$
 declare
