@@ -177,7 +177,7 @@ export function HeroSection() {
           {/* ── The index, which is also the control ────────────────────── */}
           <div
             role="tablist"
-            aria-label="What we do"
+            aria-label="Services overview"
             aria-orientation="horizontal"
             className="mt-12 lg:mt-auto lg:pt-12 grid grid-cols-2 gap-x-8 max-w-lg"
           >

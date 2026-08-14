@@ -21,7 +21,7 @@ export default function Home() {
       <Navbar />
       <HeroSection />
       <SelectedWork />
-      <ServicesSection />
+      <ServicesSection bridgeToState />
       <StateSection />
       <ProcessSection />
       <PartnersMarquee />
