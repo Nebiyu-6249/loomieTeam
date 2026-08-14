@@ -467,6 +467,38 @@ export async function getSocialLinks(): Promise<SocialLink[]> {
 
 /* ── Settings ──────────────────────────────────────────────────────────── */
 
+/**
+ * The address to tell somebody to write to when nothing else worked.
+ *
+ * Never throws, which is the whole point. The booking and enquiry routes need
+ * an address for their own refusal messages, including the message that says
+ * "the database is not configured" — and a function that reads the database to
+ * find out what to say when the database is unreachable turns a 503 with useful
+ * advice into a 500 with none.
+ *
+ * This is the one place a seeded value may stand in for a configured one in
+ * production, and it is defensible because the alternative is worse: a visitor
+ * looking at an error page with no way to reach anybody. Page content is not
+ * allowed this and never will be — a wrong email address is a nuisance, a whole
+ * site of wrong content is a different thing.
+ */
+export async function getContactEmail(): Promise<string> {
+  const fallback = (SEED_SETTINGS as Settings).contact_email;
+  if (!isSupabaseConfigured()) return fallback;
+
+  try {
+    const supabase = publicClient();
+    const { data } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "contact_email")
+      .maybeSingle();
+    return (data as { value: string | null } | null)?.value || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export async function getSettings(): Promise<Settings> {
   const defaults = SEED_SETTINGS as Settings;
 

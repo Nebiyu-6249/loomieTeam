@@ -105,7 +105,7 @@ export async function deliver(booking: Booking): Promise<DeliveryResult> {
           <tr><td>Studio time</td><td>${escape(studioTime)} (${escape(STUDIO_TIMEZONE)})</td></tr>
           <tr><td>Their time</td><td>${escape(visitorTime)} (${escape(booking.timezone)})</td></tr>
           <tr><td>Email</td><td>${escape(booking.email)}</td></tr>
-          <tr><td>Service</td><td>${escape(booking.service ?? "Not specified")}</td></tr>
+          <tr><td>Service</td><td>${escape(booking.serviceTitle ?? "Not specified")}</td></tr>
           <tr><td>Note</td><td>${escape(booking.note ?? "—")}</td></tr>
           <tr><td>Reference</td><td>${escape(booking.id)}</td></tr>
         </table>`,
@@ -136,4 +136,51 @@ export async function deliver(booking: Booking): Promise<DeliveryResult> {
   }
 
   return result;
+}
+
+/* ── Enquiries ───────────────────────────────────────────────────────────── */
+
+export interface EnquiryMessage {
+  name: string;
+  email: string;
+  company?: string;
+  serviceTitle?: string;
+  message: string;
+}
+
+/**
+ * Tells the studio about a written enquiry.
+ *
+ * One email, not two. A booking sends a receipt because the visitor is being
+ * held to a time and needs it in writing; an enquiry is a message, and a robot
+ * replying "we got your message" to a message is noise. The interface confirms
+ * on screen instead, which is where the person already is.
+ *
+ * Returns whether it actually sent. The route refuses rather than claiming an
+ * enquiry was received by somebody who has not been told about it.
+ */
+export async function notifyEnquiry(enquiry: EnquiryMessage): Promise<boolean> {
+  const from = process.env.BOOKING_FROM_EMAIL;
+  const studio = process.env.BOOKING_TO_EMAIL;
+  if (!process.env.RESEND_API_KEY || !from || !studio) return false;
+
+  try {
+    await send({
+      from,
+      to: studio,
+      replyTo: enquiry.email,
+      subject: `Enquiry — ${enquiry.name}`,
+      html: `
+        <p><strong>${escape(enquiry.name)}</strong> sent an enquiry.</p>
+        <table cellpadding="4">
+          <tr><td>Email</td><td>${escape(enquiry.email)}</td></tr>
+          <tr><td>Company</td><td>${escape(enquiry.company ?? "—")}</td></tr>
+          <tr><td>Service</td><td>${escape(enquiry.serviceTitle ?? "Not specified")}</td></tr>
+        </table>
+        <p style="white-space:pre-wrap">${escape(enquiry.message)}</p>`,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
