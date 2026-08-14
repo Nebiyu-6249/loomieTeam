@@ -463,12 +463,34 @@ export async function startPostgrestStub(port, connectionString, options = {}) {
         const list = Array.isArray(body) ? body : [body];
         const inserted = [];
 
+        /**
+         * PostgREST's upsert: `?on_conflict=<cols>` plus
+         * `Prefer: resolution=merge-duplicates`, which supabase-js sends for
+         * `.upsert(values, { onConflict })`. Without this the stub did a plain
+         * insert and a second save of the same settings key came back as a
+         * primary key violation.
+         */
+        const conflict = params.get("on_conflict");
+        const merging =
+          conflict && (request.headers.prefer ?? "").includes("resolution=merge-duplicates");
+
         for (const item of list) {
           const keys = Object.keys(item);
           const placeholders = keys.map((_, i) => `$${i + 1}`);
+
+          const onConflict = merging
+            ? ` on conflict (${conflict
+                .split(",")
+                .map((c) => `"${c.trim()}"`)
+                .join(", ")}) do update set ${keys
+                .filter((k) => !conflict.split(",").map((c) => c.trim()).includes(k))
+                .map((k) => `"${k}" = excluded."${k}"`)
+                .join(", ")}`
+            : "";
+
           const { rows } = await client.query(
             `insert into ${table} (${keys.map((k) => `"${k}"`).join(", ")})
-             values (${placeholders.join(", ")}) returning ${projection()}`,
+             values (${placeholders.join(", ")})${onConflict} returning ${projection()}`,
             keys.map((k) => item[k])
           );
           inserted.push(...rows);

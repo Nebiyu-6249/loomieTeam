@@ -4,6 +4,9 @@ import { createServerClient } from "@supabase/ssr";
 /**
  * Keeps the admin session alive, and nothing else.
  *
+ * Named `proxy` rather than `middleware`: Next 16 renamed the convention and
+ * warns on the old name at build time.
+ *
  * Supabase access tokens are short-lived. Without something refreshing them on
  * the way past, an administrator gets signed out mid-edit, and Server
  * Components cannot do the refreshing themselves because they cannot write
@@ -11,8 +14,8 @@ import { createServerClient } from "@supabase/ssr";
  * built, and the rest of the application reads an already-current session.
  *
  * ── This is not the access control ───────────────────────────────────────
- * Middleware runs before the route and is the wrong place to decide who may
- * see what: it is easy to write a matcher that misses a path, and a mistake
+ * This runs before the route and is the wrong place to decide who may see
+ * what: it is easy to write a matcher that misses a path, and a mistake
  * here is invisible until somebody finds it. Every admin page calls
  * requireAdmin() for itself, every admin action re-checks, and the database
  * enforces the same rules again through row level security. This file exists
@@ -21,7 +24,7 @@ import { createServerClient } from "@supabase/ssr";
  * Cheap when unconfigured: no Supabase, no client, no work.
  */
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) return NextResponse.next();

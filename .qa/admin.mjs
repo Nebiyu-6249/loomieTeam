@@ -372,6 +372,126 @@ try {
     await outContext.close();
   }
 
+  /* ── 9b. Projects, bookings, enquiries, settings, people ─────────────── */
+  console.log("\n9b. The rest of the sections");
+  {
+    const ctx = await browser.newContext();
+    const p2 = await ctx.newPage();
+    await signIn(p2, OWNER);
+
+    // Projects: a case study with its sections, disciplines and gallery.
+    await p2.goto(`${base}/admin/projects`, { waitUntil: "networkidle" });
+    const projectRows = await p2.locator("tbody tr").count();
+    const { rows: projectCount } = await rest.query("select count(*)::int as n from projects");
+    check("the work list shows every project", projectRows === projectCount[0].n, `${projectRows} vs ${projectCount[0].n}`);
+
+    await p2.click('tbody tr:first-child a[href^="/admin/projects/"]');
+    await p2.waitForSelector('textarea[name="scenario"]', { timeout: 10000 });
+
+    const scenario = await p2.inputValue('textarea[name="scenario"]');
+    check("its sections are loaded", scenario.length > 20, `${scenario.length} characters`);
+
+    const disciplines = await p2.inputValue('input[name="disciplines"]');
+    check("its disciplines are loaded", disciplines.includes(","), disciplines);
+
+    const galleryRows = await p2.locator('select[name="gallery_media"]').count();
+    check("its gallery is loaded", galleryRows >= 2, `${galleryRows} rows`);
+
+    await p2.fill('textarea[name="direction"]', "A revised direction, saved from the admin.");
+    await Promise.all([
+      p2.waitForURL(/saved=1/, { timeout: 15000 }),
+      p2.click('main form button[type="submit"]'),
+    ]);
+
+    const savedSection = await rest.query(
+      `select body from project_sections s
+         join projects p on p.id = s.project_id
+        where s.kind = 'direction' and p.display_order = 0`
+    );
+    check(
+      "editing a section writes it",
+      savedSection.rows[0]?.body === "A revised direction, saved from the admin.",
+      savedSection.rows[0]?.body?.slice(0, 60)
+    );
+
+    const stillThere = await rest.query(
+      `select count(*)::int as n from project_media m
+         join projects p on p.id = m.project_id where p.display_order = 0`
+    );
+    check("and leaves the gallery alone", stillThere.rows[0].n === galleryRows, `${stillThere.rows[0].n} vs ${galleryRows}`);
+
+    // Bookings and enquiries: a real row each, then a status change. Cleared
+    // first, so an interrupted run does not poison the next one.
+    await rest.query("delete from bookings where booking_code = 'LM-TEST01'");
+    await rest.query("delete from enquiries where email = 'grace@example.com'");
+    await rest.query(
+      `insert into bookings (booking_code, name, email, start_at, end_at, visitor_timezone, status)
+       values ('LM-TEST01', 'Ada Test', 'ada@example.com',
+               now() + interval '3 days', now() + interval '3 days 20 minutes',
+               'Europe/London', 'pending')`
+    );
+    await rest.query(
+      `insert into enquiries (name, email, message, status)
+       values ('Grace Test', 'grace@example.com', 'A question about identity work.', 'new')`
+    );
+
+    await p2.goto(`${base}/admin/bookings`, { waitUntil: "networkidle" });
+    check("the booking is listed", await p2.getByText("Ada Test", { exact: true }).first().isVisible(), "not shown");
+    check("with its reference", (await p2.locator("body").innerText()).includes("LM-TEST01"), "reference missing");
+    check(
+      "and says the visitor was never confirmed",
+      (await p2.locator("body").innerText()).includes("No confirmation reached Ada"),
+      "warning missing"
+    );
+
+    await p2.selectOption('select[name="status"]', "cancelled");
+    await p2.waitForTimeout(1500);
+    const cancelled = await rest.query("select status from bookings where booking_code = 'LM-TEST01'");
+    check("changing the status writes it", cancelled.rows[0].status === "cancelled", cancelled.rows[0].status);
+
+    await p2.goto(`${base}/admin/enquiries`, { waitUntil: "networkidle" });
+    check("the enquiry is listed", await p2.getByText("Grace Test", { exact: true }).first().isVisible(), "not shown");
+    check(
+      "with the whole message, not a preview",
+      (await p2.locator("body").innerText()).includes("A question about identity work."),
+      "message truncated"
+    );
+
+    // Settings, and the site changing with them.
+    await p2.goto(`${base}/admin/settings`, { waitUntil: "networkidle" });
+    await p2.fill('input[name="footer_statement"]', "Working from three time zones");
+    await Promise.all([
+      p2.waitForURL(/saved=1/, { timeout: 15000 }),
+      p2.click('main form button[type="submit"]'),
+    ]);
+
+    const contact = await (await fetch(`${base}/contact`)).text();
+    check(
+      "a setting change reaches the site",
+      contact.includes("Working from three time zones"),
+      "footer line not updated"
+    );
+
+    // Media: the library lists what is registered.
+    await p2.goto(`${base}/admin/media`, { waitUntil: "networkidle" });
+    const { rows: mediaCount } = await rest.query("select count(*)::int as n from media");
+    const shown = await p2.locator("ul li form").count();
+    check("the media library lists every image", shown === mediaCount[0].n, `${shown} vs ${mediaCount[0].n}`);
+
+    // People: the two accounts this suite created.
+    await p2.goto(`${base}/admin/people`, { waitUntil: "networkidle" });
+    check("both administrators are listed", (await p2.locator("body").innerText()).includes("Eve Editor"), "editor missing");
+    check(
+      "and the signed-in one cannot deactivate themselves",
+      (await p2.locator('button:has-text("Deactivate")').count()) === 1,
+      "self-deactivation offered"
+    );
+
+    await rest.query("delete from bookings where booking_code = 'LM-TEST01'");
+    await rest.query("delete from enquiries where email = 'grace@example.com'");
+    await ctx.close();
+  }
+
   /* ── 10. The admin is not indexed ────────────────────────────────────── */
   console.log("\n10. Not indexed");
   {
