@@ -11,9 +11,9 @@
     "typecheck": "tsc --noEmit",
     "grade-images": "node scripts/grade-images.mjs",
     "make-artefacts": "node scripts/make-artefacts.mjs",
-    "db:migrate": "node scripts/db.mjs migrate",
-    "db:seed": "node scripts/db.mjs seed",
-    "db:test": "node scripts/db.mjs test"
+    "db:migrate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --disable-warning=ExperimentalWarning scripts/db.mjs migrate",
+    "db:seed": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --disable-warning=ExperimentalWarning scripts/db.mjs seed",
+    "db:test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --disable-warning=ExperimentalWarning scripts/db.mjs test"
   },
   "dependencies": {
     "@react-three/fiber": "^9.7.0",
