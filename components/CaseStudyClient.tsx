@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import { STATUS_LABEL, type Project } from "@/lib/projects";
+import { STUDY_LABEL, STUDY_PARTS, type Project } from "@/lib/content-types";
 
 /**
  * A case study, set as an article rather than a dashboard.
@@ -16,18 +16,13 @@ import { STATUS_LABEL, type Project } from "@/lib/projects";
  * copy is now written to be read.
  */
 
-const PARTS = [
-  { key: "brief", label: "Brief" },
-  { key: "approach", label: "Approach" },
-  { key: "outcome", label: "Outcome" },
-] as const;
-
 export function CaseStudyClient({
   project,
   next,
 }: {
   project: Project;
-  next: Project;
+  /** Null when this is the only published study, so it does not link to itself. */
+  next: Project | null;
 }) {
   return (
     <div>
@@ -41,7 +36,7 @@ export function CaseStudyClient({
               {/* Said at the top, not in a footnote. A visitor should know
                   what they are reading before they read it. */}
               <span className="border border-border-custom px-2 py-1 text-foreground">
-                {STATUS_LABEL[project.status]}
+                {STUDY_LABEL[project.studyType]}
               </span>
             </div>
             <h1 className="mt-5 font-display font-normal text-[13vw] sm:text-7xl lg:text-8xl leading-[0.88] tracking-[-0.03em] text-foreground">
@@ -76,7 +71,7 @@ export function CaseStudyClient({
 
       <section className="px-6 md:px-12 max-w-[1700px] mx-auto py-16 md:py-22">
         <div className="grid grid-cols-12 gap-x-8 gap-y-12">
-          {PARTS.map((part) => (
+          {STUDY_PARTS.map((part) => (
             <div key={part.key} className="col-span-12 md:col-span-4">
               <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-foreground-secondary">
                 {part.label}
@@ -112,6 +107,7 @@ export function CaseStudyClient({
         </div>
       </section>
 
+      {next && next.slug !== project.slug ? (
       <section className="px-6 md:px-12 max-w-[1700px] mx-auto pb-20 md:pb-24">
         <Link
           href={`/work/${next.slug}`}
@@ -142,6 +138,7 @@ export function CaseStudyClient({
           </div>
         </Link>
       </section>
+      ) : null}
     </div>
   );
 }

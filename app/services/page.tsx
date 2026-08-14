@@ -3,6 +3,7 @@ import { Navbar } from "@/components/Navbar";
 import { ServicesSection } from "@/components/ServicesSection";
 import { ProcessSection } from "@/components/ProcessSection";
 import { Footer } from "@/components/Footer";
+import { getServices } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "Services — Loomie",
@@ -10,7 +11,9 @@ export const metadata: Metadata = {
     "Identity, web identity, marketing design and websites from Loomie.",
 };
 
-export default function ServicesPage() {
+export default async function ServicesPage() {
+  const services = await getServices();
+
   return (
     <main id="main" className="relative min-h-screen text-foreground overflow-x-clip">
       <Navbar />
@@ -21,7 +24,7 @@ export default function ServicesPage() {
         </h1>
       </header>
 
-      <ServicesSection />
+      <ServicesSection services={services} />
       <ProcessSection />
       <Footer />
     </main>

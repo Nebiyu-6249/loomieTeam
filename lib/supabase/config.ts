@@ -36,6 +36,19 @@ export function isProduction() {
 }
 
 /**
+ * True while `next build` is collecting pages, rather than serving them.
+ *
+ * The build runs with NODE_ENV=production, so without this the two states are
+ * indistinguishable and a build on a machine that has no database credentials —
+ * CI, a preview, a first deploy set up before the project exists — fails on the
+ * first content page. Building is not serving, and the two deserve different
+ * answers.
+ */
+export function isBuildPhase() {
+  return process.env.NEXT_PHASE === "phase-production-build";
+}
+
+/**
  * True when the seeded content may stand in for the database.
  *
  * Development only, and never a silent condition: callers log the first time

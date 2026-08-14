@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { PARTNERS, type Partner } from "@/lib/partners";
+import Image from "next/image";
+import type { Partner } from "@/lib/content-types";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 /**
@@ -14,10 +15,30 @@ import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
  * at reading size, and the belt sits low in the page where a partner list
  * belongs.
  *
- * Data lives in lib/partners.ts. Replacing the placeholders is one edit there.
+ * Partners come from the database. A partner with an uploaded logo shows it; a
+ * partner without one gets a mark drawn from primitives in the current text
+ * colour, so nothing on this belt is ever a third party's trademark that
+ * somebody did not deliberately upload.
  */
 
-function Mark({ kind }: { kind: Partner["path"]["kind"] }) {
+const KINDS = ["polygon", "circle", "bars", "path", "pair"] as const;
+type MarkKind = (typeof KINDS)[number];
+
+/**
+ * Which of the five shapes a partner gets.
+ *
+ * Derived from the name rather than stored, because the shape is decoration
+ * for a row that has no logo yet — not a fact about the partner. Deterministic,
+ * so a given name always draws the same mark and the belt does not reshuffle
+ * itself between renders.
+ */
+function markFor(name: string): MarkKind {
+  let hash = 0;
+  for (let i = 0; i < name.length; i += 1) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  return KINDS[hash % KINDS.length];
+}
+
+function Mark({ kind }: { kind: MarkKind }) {
   switch (kind) {
     case "polygon":
       return <polygon points="10,4 18,20 2,20" className="fill-current" />;
@@ -49,9 +70,21 @@ function Mark({ kind }: { kind: Partner["path"]["kind"] }) {
 function Wordmark({ partner }: { partner: Partner }) {
   return (
     <div className="flex items-center gap-3 mr-14 shrink-0">
-      <svg viewBox="0 0 20 24" className="w-4 h-5" aria-hidden="true">
-        <Mark kind={partner.path.kind} />
-      </svg>
+      {partner.logo ? (
+        <span className="relative block w-5 h-5">
+          <Image
+            src={partner.logo.src}
+            alt=""
+            fill
+            sizes="20px"
+            className="object-contain"
+          />
+        </span>
+      ) : (
+        <svg viewBox="0 0 20 24" className="w-4 h-5" aria-hidden="true">
+          <Mark kind={markFor(partner.name)} />
+        </svg>
+      )}
       <span className="font-mono text-sm uppercase tracking-[0.18em] whitespace-nowrap">
         {partner.name}
       </span>
@@ -59,8 +92,10 @@ function Wordmark({ partner }: { partner: Partner }) {
   );
 }
 
-export function PartnersMarquee() {
+export function PartnersMarquee({ partners }: { partners: Partner[] }) {
   const prefersReducedMotion = usePrefersReducedMotion();
+
+  if (partners.length === 0) return null;
 
   return (
     <section className="py-16 md:py-20 border-t border-border-custom overflow-hidden">
@@ -74,7 +109,7 @@ export function PartnersMarquee() {
           marquee frozen mid-scroll is a row of half-visible words. */}
       {prefersReducedMotion ? (
         <ul className="max-w-[1700px] mx-auto px-6 md:px-12 flex flex-wrap gap-x-10 gap-y-4 text-foreground-secondary">
-          {PARTNERS.map((partner) => (
+          {partners.map((partner) => (
             <li key={partner.id}>
               <Wordmark partner={partner} />
             </li>
@@ -86,13 +121,13 @@ export function PartnersMarquee() {
             className="animate-marquee-smooth items-center text-foreground-secondary transition-opacity duration-[400ms] group-hover:opacity-100 group-hover:[animation-play-state:paused] opacity-70"
             aria-hidden="true"
           >
-            {[...PARTNERS, ...PARTNERS, ...PARTNERS].map((partner, index) => (
+            {[...partners, ...partners, ...partners].map((partner, index) => (
               <Wordmark key={`${partner.id}-${index}`} partner={partner} />
             ))}
           </div>
 
           <p className="sr-only">
-            Partners: {PARTNERS.map((partner) => partner.name).join(", ")}.
+            Partners: {partners.map((partner) => partner.name).join(", ")}.
           </p>
         </div>
       )}
