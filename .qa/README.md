@@ -5,9 +5,23 @@ mocks of it. Each needs `SUPABASE_DB_URL` pointing at a Postgres carrying the
 schema from `supabase/migrations`, and a production build (`npm run build`).
 
     npm run build
-    SUPABASE_DB_URL="postgres://…/loomie" node .qa/booking.mjs
-    SUPABASE_DB_URL="postgres://…/loomie" node .qa/booking-happy.mjs
-    SUPABASE_DB_URL="postgres://…/loomie" node .qa/enquiry.mjs
+    SUPABASE_DB_URL="postgres://…/loomie" node .qa/booking.mjs        # 33
+    SUPABASE_DB_URL="postgres://…/loomie" node .qa/booking-happy.mjs  # 38
+    SUPABASE_DB_URL="postgres://…/loomie" node .qa/enquiry.mjs        # 32
+    SUPABASE_DB_URL="postgres://…/loomie" node .qa/admin.mjs          # 50
+
+The rest need a server running, which `serve.mjs` provides on port 3210:
+
+    SUPABASE_DB_URL="postgres://…/loomie" node .qa/serve.mjs &
+    node .qa/a11y.mjs           # 65 — landmarks, headings, focus rings, labels
+    node .qa/responsive.mjs     # horizontal overflow at 8 widths across 7 routes
+    node .qa/weight2.mjs        # initial JS, and what three.js adds on demand
+    SUPABASE_DB_URL="…" node .qa/hero-from-db.mjs   # 5 — the hero is not a constant
+
+`restore-seed.mjs` puts the fixture database back to the seeded text after a
+run that edited content.
+
+Anything needing a browser also needs `playwright` resolvable from the repo.
 
 ## postgrestStub.mjs
 

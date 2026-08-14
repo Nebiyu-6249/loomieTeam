@@ -10,7 +10,7 @@
 import { chromium } from "playwright";
 
 const BASE = "http://localhost:3210";
-const PAGES = ["/", "/work", "/work/quarry", "/services", "/studio", "/clients", "/contact"];
+const PAGES = ["/", "/work", "/work/quarry", "/services", "/about", "/clients", "/contact"];
 
 let passed = 0;
 let failed = 0;
