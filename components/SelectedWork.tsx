@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { SELECTED_PROJECTS, STATUS_LABEL, type Project } from "@/lib/projects";
+import { STUDY_LABEL, type Project } from "@/lib/content-types";
 
 /**
  * The homepage's only portfolio system.
@@ -83,7 +83,7 @@ function Study({
             is placeholder work is a claim about a client relationship. */}
         <div className="mt-3 flex items-baseline justify-between gap-4">
           <span className="font-mono text-[0.65rem] uppercase tracking-[0.16em] text-foreground-secondary">
-            {STATUS_LABEL[project.status]}
+            {STUDY_LABEL[project.studyType]}
           </span>
         </div>
 
@@ -95,7 +95,7 @@ function Study({
   );
 }
 
-export function SelectedWork() {
+export function SelectedWork({ projects }: { projects: Project[] }) {
   /**
    * Hovering one study quiets the others rather than shouting the active one.
    * Null means nothing is engaged and everything sits at full strength.
@@ -121,7 +121,7 @@ export function SelectedWork() {
       </div>
 
       <div className="grid grid-cols-12 gap-x-8 gap-y-12 md:gap-y-20">
-        {SELECTED_PROJECTS.map((project, index) => (
+        {projects.map((project, index) => (
           <Study
             key={project.slug}
             project={project}

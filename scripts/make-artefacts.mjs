@@ -771,6 +771,284 @@ function interfacePlate(w, h) {
 
 /* ── Render ────────────────────────────────────────────────────────────── */
 
+/* ── Sector plates ─────────────────────────────────────────────────────────
+ *
+ * Four panels for "Who we work with", one per sector. Each one draws that
+ * sector's actual design problem rather than illustrating the industry: what
+ * the studio is handed and what it has to hold. A photograph of a building
+ * would say "architecture"; a line-weight ladder beside a material key says
+ * what the work in that sector consists of.
+ *
+ * They alternate paper and ink so the four panels have a rhythm down the page
+ * without the layout having to supply one.
+ */
+
+/** 08 — Architecture: the conventions a practice already draws in. */
+function sectorArchitecture(w, h) {
+  const m = 76;
+  const inner = w - m * 2;
+
+  const weights = [3.5, 2.25, 1.5, 1, 0.6];
+  const ladder = weights
+    .map((weight, i) => {
+      const y = h * 0.36 + i * 62;
+      return `<path d="M${m} ${y}H${m + inner * 0.42}" stroke="${INK}" stroke-width="${weight}"/>
+        ${note(m + inner * 0.44, y + 5, `${weight.toFixed(2)} mm`, NOTE_ON_PAPER, 13)}`;
+    })
+    .join("");
+
+  // A plan fragment: two rooms, an opening, a wall poché, a dimension.
+  const px = m + inner * 0.58;
+  const py = h * 0.3;
+  const pw = inner * 0.42;
+  const ph = h * 0.5;
+  const plan = `
+    <rect x="${px}" y="${py}" width="${pw}" height="${ph}" fill="none"
+      stroke="${INK}" stroke-width="3"/>
+    <path d="M${px + pw * 0.55} ${py}V${py + ph}" stroke="${INK}" stroke-width="3"/>
+    <path d="M${px + pw * 0.55} ${py + ph * 0.42}v${ph * 0.24}" stroke="${PAPER}" stroke-width="7"/>
+    <path d="M${px + pw * 0.55} ${py + ph * 0.42}a${ph * 0.24} ${ph * 0.24} 0 0 1 ${ph * 0.24} ${ph * 0.24}"
+      fill="none" stroke="${GUIDE_ON_PAPER}" stroke-width="1.25"/>
+    <path d="M${px} ${py}H${px + pw}" stroke="${INK}" stroke-width="0"/>
+    ${dimension(px, py - 34, px + pw, py - 34, "6400", INK, NOTE_ON_PAPER)}
+    ${note(px + 18, py + 34, "Studio", NOTE_ON_PAPER, 14)}
+    ${note(px + pw * 0.55 + 18, py + 34, "Store", NOTE_ON_PAPER, 14)}`;
+
+  // Material key: three hatches, named.
+  const keys = ["Concrete", "Timber", "Insulation"]
+    .map((name, i) => {
+      const x = m + i * (inner / 3);
+      const y = h - m - 96;
+      const box = 44;
+      const fill =
+        i === 0
+          ? `<path d="M${x} ${y + box}L${x + box} ${y}M${x} ${y + box / 2}L${x + box / 2} ${y}M${x + box / 2} ${y + box}L${x + box} ${y + box / 2}" stroke="${INK}" stroke-width="1.25"/>`
+          : i === 1
+            ? `<path d="M${x} ${y + 11}H${x + box}M${x} ${y + 22}H${x + box}M${x} ${y + 33}H${x + box}" stroke="${INK}" stroke-width="1.25"/>`
+            : `<path d="M${x} ${y + 22}q11 -14 22 0t22 0" fill="none" stroke="${INK}" stroke-width="1.25"/>`;
+      return `<rect x="${x}" y="${y}" width="${box}" height="${box}" fill="none"
+          stroke="${INK}" stroke-width="1.5"/>${fill}
+        ${note(x + box + 16, y + 28, name, NOTE_ON_PAPER, 14)}`;
+    })
+    .join("");
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <rect width="${w}" height="${h}" fill="${PAPER}"/>
+    ${registration(w, h, m, GUIDE_ON_PAPER)}
+
+    ${note(m, m - 22, "Sector 01", NOTE_ON_PAPER)}
+    ${note(w - m, m - 22, "Architecture and interiors", NOTE_ON_PAPER, 15, "end")}
+
+    <text x="${m}" y="${h * 0.225}" font-family="${SERIF}" font-size="${w * 0.062}"
+      fill="${INK}">Their conventions, kept</text>
+
+    ${ladder}
+    ${plan}
+
+    <!-- A scale bar under the ladder: the drawing's other fixed convention. -->
+    <g>
+      ${[0, 1, 2, 3]
+        .map((i) => {
+          const barW = inner * 0.08;
+          const bx = m + i * barW;
+          const by = h * 0.75;
+          return `<rect x="${bx}" y="${by}" width="${barW}" height="16"
+              fill="${i % 2 ? PAPER : INK}" stroke="${INK}" stroke-width="1.25"/>`;
+        })
+        .join("")}
+      ${note(m, h * 0.75 + 44, "0        1        2        3        4 m", NOTE_ON_PAPER, 13)}
+    </g>
+
+    <path d="M${m} ${h - m - 132}H${w - m}" stroke="${GUIDE_ON_PAPER}" stroke-width="1.25"/>
+    ${keys}
+  </svg>`;
+}
+
+/** 09 — Objects: one mark, at every size it has to survive. */
+function sectorObjects(w, h) {
+  const m = 76;
+  const inner = w - m * 2;
+  const baseline = h * 0.44;
+
+  // Descending widths on a shared baseline, smallest annotated as the floor.
+  const widths = [inner * 0.3, inner * 0.19, inner * 0.12, inner * 0.075, inner * 0.047];
+  let x = m;
+  const row = widths
+    .map((width, i) => {
+      const markH = width * (36 / 70);
+      const drawn = mark(x, baseline - markH, width, PAPER, INK);
+      const tick = `<path d="M${x} ${baseline + 18}v14" stroke="${GUIDE_ON_INK}" stroke-width="1.25"/>
+        ${note(x, baseline + 54, `${Math.round(width / 3)} mm`, NOTE_ON_INK, 13)}`;
+      const floor =
+        i === widths.length - 1
+          ? `<rect x="${x - 12}" y="${baseline - markH - 12}" width="${width + 24}"
+              height="${markH + 24}" fill="none" stroke="${PAPER}" stroke-width="1.25"
+              stroke-dasharray="5 5"/>
+            ${note(x - 12, baseline - markH - 26, "Minimum", NOTE_ON_INK, 13)}`
+          : "";
+      x += width + inner * 0.045;
+      return drawn + tick + floor;
+    })
+    .join("");
+
+  // The same mark as it survives three processes.
+  const processes = ["Stamped", "Cast", "Folded"]
+    .map((name, i) => {
+      const cellW = inner / 3;
+      const cx = m + i * cellW;
+      const cy = h * 0.6;
+      const markW = cellW * 0.5;
+      const treatment =
+        i === 0
+          ? mark(cx, cy + 30, markW, "none", "none").replace(
+              /fill="none"/g,
+              `fill="none" stroke="${PAPER}" stroke-width="2.5"`
+            )
+          : i === 1
+            ? mark(cx, cy + 30, markW, NOTE_ON_INK, INK)
+            : mark(cx, cy + 30, markW, PAPER, INK);
+      const skew =
+        i === 2
+          ? `<g transform="translate(${cx} ${cy + 30}) skewX(-14) translate(${-cx} ${-cy - 30})">${treatment}</g>`
+          : treatment;
+      return `${skew}
+        <path d="M${cx} ${h - m - 96}h${cellW * 0.72}" stroke="${GUIDE_ON_INK}" stroke-width="1.25"/>
+        ${note(cx, h - m - 62, name, NOTE_ON_INK, 15)}
+        ${note(cx, h - m - 32, ["0.4 mm relief", "Sand, ±0.3 mm", "1.5 mm radius"][i], NOTE_ON_INK, 13)}`;
+    })
+    .join("");
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <rect width="${w}" height="${h}" fill="${INK}"/>
+    ${registration(w, h, m, GUIDE_ON_INK)}
+
+    ${note(m, m - 22, "Sector 02", NOTE_ON_INK)}
+    ${note(w - m, m - 22, "Objects and manufacturing", NOTE_ON_INK, 15, "end")}
+
+    <text x="${m}" y="${h * 0.235}" font-family="${SERIF}" font-size="${w * 0.062}"
+      fill="${PAPER}">Down to the smallest one</text>
+
+    <path d="M${m} ${baseline + 18}H${w - m}" stroke="${GUIDE_ON_INK}" stroke-width="1.25"/>
+    ${row}
+    ${processes}
+  </svg>`;
+}
+
+/** 10 — Hardware and software: one component, three places it has to live. */
+function sectorHardware(w, h) {
+  const m = 76;
+  const inner = w - m * 2;
+  const cellW = (inner - 56 * 2) / 3;
+  const top = h * 0.32;
+  const cellH = h * 0.48;
+
+  const contexts = ["Panel", "Screen", "Enclosure"]
+    .map((name, i) => {
+      const x = m + i * (cellW + 56);
+      // The same control, drawn to the same measures, in three housings.
+      const cx = x + cellW / 2;
+      const cy = top + cellH * 0.46;
+      const r = cellW * 0.13;
+
+      const housing =
+        i === 0
+          ? `<rect x="${x}" y="${top}" width="${cellW}" height="${cellH}" fill="none"
+              stroke="${INK}" stroke-width="2.5"/>
+            <path d="M${x} ${top + cellH * 0.78}H${x + cellW}" stroke="${INK}" stroke-width="1.25"/>`
+          : i === 1
+            ? `<rect x="${x}" y="${top}" width="${cellW}" height="${cellH}" rx="10" fill="none"
+              stroke="${INK}" stroke-width="2.5"/>
+            <rect x="${x + 14}" y="${top + 14}" width="${cellW - 28}" height="${cellH - 28}"
+              fill="none" stroke="${GUIDE_ON_PAPER}" stroke-width="1.25"/>`
+            : `<path d="M${x} ${top + 26}l26 -26h${cellW - 26}v${cellH - 26}l-26 26h${-cellW + 26}z"
+              fill="none" stroke="${INK}" stroke-width="2.5"/>
+            <path d="M${x} ${top + 26}h${cellW - 26}M${x + cellW - 26} ${top + 26}v${cellH - 26}"
+              stroke="${INK}" stroke-width="1.25"/>`;
+
+      return `${housing}
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${INK}" stroke-width="2.5"/>
+        <path d="M${cx} ${cy - r}v${-18}" stroke="${INK}" stroke-width="2.5"/>
+        <circle cx="${cx}" cy="${cy}" r="${r * 0.24}" fill="${INK}"/>
+        ${dimension(cx - r, cy + r + 34, cx + r, cy + r + 34, "Ø 24", INK, NOTE_ON_PAPER)}
+        ${note(x, top - 22, name, NOTE_ON_PAPER, 14)}`;
+    })
+    .join("");
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <rect width="${w}" height="${h}" fill="${PAPER}"/>
+    ${registration(w, h, m, GUIDE_ON_PAPER)}
+
+    ${note(m, m - 22, "Sector 03", NOTE_ON_PAPER)}
+    ${note(w - m, m - 22, "Hardware and software", NOTE_ON_PAPER, 15, "end")}
+
+    <text x="${m}" y="${h * 0.215}" font-family="${SERIF}" font-size="${w * 0.062}"
+      fill="${INK}">One part, three housings</text>
+
+    ${contexts}
+
+    <path d="M${m} ${h - m - 54}H${w - m}" stroke="${GUIDE_ON_PAPER}" stroke-width="1.25"/>
+    ${note(m, h - m - 18, "Same measure, same tolerance, same name in every drawing", NOTE_ON_PAPER, 14)}
+  </svg>`;
+}
+
+/** 11 — Trade and supply: a specification set to be used, not admired. */
+function sectorTrade(w, h) {
+  const m = 76;
+  const inner = w - m * 2;
+  const cols = [0, 0.42, 0.62, 0.8];
+  const heads = ["Item", "Finish", "Gauge", "Pack"];
+  const rows = [
+    ["Channel, 40 × 40", "Mill", "1.6 mm", "3 m"],
+    ["Channel, 60 × 40", "Mill", "2.0 mm", "3 m"],
+    ["Angle, 50 × 50", "Galvanised", "2.0 mm", "6 m"],
+    ["Angle, 75 × 50", "Galvanised", "3.0 mm", "6 m"],
+    ["Plate, 200 wide", "Black", "4.0 mm", "Sheet"],
+    ["Plate, 300 wide", "Black", "5.0 mm", "Sheet"],
+    ["Fixing, M8", "Zinc", "—", "Box 100"],
+    ["Fixing, M10", "Zinc", "—", "Box 50"],
+    ["Bracket, 90°", "Black", "4.0 mm", "Box 25"],
+  ];
+
+  const top = h * 0.33;
+  const step = 62;
+
+  const head = heads
+    .map((label, i) => note(m + inner * cols[i], top - 20, label, NOTE_ON_INK, 14))
+    .join("");
+
+  const body = rows
+    .map((row, r) => {
+      const y = top + 18 + r * step;
+      const cells = row
+        .map(
+          (cell, i) =>
+            `<text x="${m + inner * cols[i]}" y="${y}" font-family="${MONO}" font-size="19"
+               letter-spacing="1.1" fill="${PAPER}">${esc(cell)}</text>`
+        )
+        .join("");
+      return `${cells}
+        <path d="M${m} ${y + 18}H${w - m}" stroke="${GUIDE_ON_INK}" stroke-width="1.25"/>`;
+    })
+    .join("");
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <rect width="${w}" height="${h}" fill="${INK}"/>
+    ${registration(w, h, m, GUIDE_ON_INK)}
+
+    ${note(m, m - 22, "Sector 04", NOTE_ON_INK)}
+    ${note(w - m, m - 22, "Trade and supply", NOTE_ON_INK, 15, "end")}
+
+    <text x="${m}" y="${h * 0.235}" font-family="${SERIF}" font-size="${w * 0.062}"
+      fill="${PAPER}">Set to be used</text>
+
+    <path d="M${m} ${top - 2}H${w - m}" stroke="${PAPER}" stroke-width="2"/>
+    ${head}
+    ${body}
+
+    ${note(m, h - m - 16, "No persuasion. The buyer already knows what they need.", NOTE_ON_INK, 14)}
+  </svg>`;
+}
+
 const PLATES = [
   { name: "sheet-mark", draw: manual, width: 1600, height: 1600 },
   { name: "sheet-type", draw: specimen, width: 1400, height: 1750 },
@@ -787,6 +1065,10 @@ const PLATES = [
     // the wireframe this plate replaces.
     photo: "public/images/work/structure.jpg",
   },
+  { name: "sector-architecture", draw: sectorArchitecture, width: 1500, height: 1125 },
+  { name: "sector-objects", draw: sectorObjects, width: 1500, height: 1125 },
+  { name: "sector-hardware", draw: sectorHardware, width: 1500, height: 1125 },
+  { name: "sector-trade", draw: sectorTrade, width: 1500, height: 1125 },
 ];
 
 /**
