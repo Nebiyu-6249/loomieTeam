@@ -9,9 +9,13 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
-      { source: "/story", destination: "/studio#story", permanent: true },
-      { source: "/values", destination: "/studio#values", permanent: true },
-      { source: "/identity", destination: "/studio#identity", permanent: true },
+      // /studio became /about when the team went on it: the page describes
+      // the people as well as the practice now, and "Studio" named only half
+      // of that. The older anchors pointed at /studio, so they move too.
+      { source: "/studio", destination: "/about", permanent: true },
+      { source: "/story", destination: "/about#story", permanent: true },
+      { source: "/values", destination: "/about#values", permanent: true },
+      { source: "/identity", destination: "/about#identity", permanent: true },
       { source: "/who-we-build-for", destination: "/clients", permanent: true },
     ];
   },
