@@ -3,6 +3,7 @@ import { Navbar } from "@/components/Navbar";
 import { ClientsSection } from "@/components/ClientsSection";
 import { PartnersMarquee } from "@/components/PartnersMarquee";
 import { Footer } from "@/components/Footer";
+import { getEngagements, getPartners, getSectors } from "@/lib/content";
 
 /**
  * The page is not called "Clients" any more.
@@ -19,7 +20,13 @@ export const metadata: Metadata = {
     "The sectors Loomie is set up for, and the three shapes an engagement takes.",
 };
 
-export default function ClientsPage() {
+export default async function ClientsPage() {
+  const [sectors, engagements, partners] = await Promise.all([
+    getSectors(),
+    getEngagements(),
+    getPartners(),
+  ]);
+
   return (
     <main id="main" className="relative min-h-screen text-foreground overflow-x-clip">
       <Navbar />
@@ -30,8 +37,8 @@ export default function ClientsPage() {
         </h1>
       </header>
 
-      <ClientsSection />
-      <PartnersMarquee />
+      <ClientsSection sectors={sectors} engagements={engagements} />
+      <PartnersMarquee partners={partners} />
       <Footer />
     </main>
   );

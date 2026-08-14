@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { SERVICE_OPTIONS } from "@/lib/services";
+import type { Service } from "@/lib/content-types";
 
 /**
  * A twenty-minute intro call, booked in the visitor's own time.
@@ -84,7 +84,7 @@ const timeLabel = (iso: string, zone: string) =>
     hour12: false,
   }).format(new Date(iso));
 
-export function BookingPanel() {
+export function BookingPanel({ services }: { services: Service[] }) {
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [loadError, setLoadError] = useState(false);
   const detected = useSyncExternalStore(subscribeZone, detectZone, serverZone);
@@ -386,9 +386,13 @@ export function BookingPanel() {
                   <option value="" className="bg-surface text-foreground">
                     Not sure yet
                   </option>
-                  {SERVICE_OPTIONS.map((option) => (
-                    <option key={option} value={option} className="bg-surface text-foreground">
-                      {option}
+                  {services.map((service) => (
+                    <option
+                      key={service.id}
+                      value={service.title}
+                      className="bg-surface text-foreground"
+                    >
+                      {service.title}
                     </option>
                   ))}
                 </select>

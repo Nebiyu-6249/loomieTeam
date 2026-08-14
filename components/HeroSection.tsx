@@ -8,7 +8,7 @@ import { BlurText } from "./BlurText";
 import { whenLoaderFinished } from "./loaderSignal";
 import { useLenis } from "./LenisScrollProvider";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
-import { SERVICES } from "@/lib/services";
+import type { Service } from "@/lib/content-types";
 import { useMagnetic } from "./useMagnetic";
 
 /**
@@ -34,7 +34,7 @@ import { useMagnetic } from "./useMagnetic";
 /** Long enough to read as a page turning, short enough not to be waited on. */
 const SWAP = 0.42;
 
-export function HeroSection() {
+export function HeroSection({ services }: { services: Service[] }) {
   const lenis = useLenis();
   const prefersReducedMotion = usePrefersReducedMotion();
   const workRef = useMagnetic<HTMLAnchorElement>();
@@ -121,8 +121,9 @@ export function HeroSection() {
   }, [prefersReducedMotion]);
 
   /** Roving focus, so the index is one tab stop and the arrows move inside it. */
-  const onTabKey = useCallback((event: React.KeyboardEvent, index: number) => {
-    const last = SERVICES.length - 1;
+  const onTabKey = useCallback(
+    (event: React.KeyboardEvent, index: number) => {
+    const last = services.length - 1;
     let next: number | null = null;
 
     if (event.key === "ArrowRight" || event.key === "ArrowDown") next = index === last ? 0 : index + 1;
@@ -134,9 +135,11 @@ export function HeroSection() {
     event.preventDefault();
     setActive(next);
     tabsRef.current[next]?.focus();
-  }, []);
+    },
+    [services.length]
+  );
 
-  const current = SERVICES[active];
+  const current = services[active];
 
   return (
     <section className="relative px-6 md:px-12 max-w-[1700px] mx-auto pt-28 md:pt-32 pb-12 md:pb-16">
@@ -181,11 +184,11 @@ export function HeroSection() {
             aria-orientation="horizontal"
             className="mt-12 lg:mt-auto lg:pt-12 grid grid-cols-2 gap-x-8 max-w-lg"
           >
-            {SERVICES.map((service, index) => {
+            {services.map((service, index) => {
               const selected = index === active;
               return (
                 <button
-                  key={service.number}
+                  key={service.id}
                   ref={(node) => {
                     tabsRef.current[index] = node;
                   }}
@@ -259,9 +262,9 @@ export function HeroSection() {
             aria-labelledby={`hero-service-${active}`}
             className="relative mt-4 aspect-[4/5] sm:aspect-[3/2] lg:aspect-auto lg:flex-1 lg:min-h-[470px] will-change-transform"
           >
-            {SERVICES.map((service, index) => (
+            {services.map((service, index) => (
               <div
-                key={service.number}
+                key={service.id}
                 ref={(node) => {
                   platesRef.current[index] = node;
                 }}

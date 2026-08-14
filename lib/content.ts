@@ -1,9 +1,11 @@
 import "server-only";
 
-import { serverClient } from "./supabase/server";
+import { connection } from "next/server";
+import { publicClient } from "./supabase/server";
 import {
   SupabaseNotConfiguredError,
   announceSeedFallback,
+  isBuildPhase,
   isProduction,
   isSupabaseConfigured,
 } from "./supabase/config";
@@ -15,10 +17,38 @@ import {
   SEED_SECTORS,
   SEED_SERVICES,
   SEED_SETTINGS,
-  SEED_SOCIAL,
   SEED_TEAM,
 } from "./seed-content";
-import type { SocialPlatform } from "./supabase/types";
+import type {
+  ContentImage,
+  Engagement,
+  Partner,
+  Project,
+  ProjectStudyStatus,
+  Sector,
+  Service,
+  Settings,
+  SettingKey,
+  SocialLink,
+  SocialPlatform,
+  TeamMember,
+} from "./content-types";
+
+/** Re-exported so a server component can take its types from one import. */
+export type {
+  ContentImage,
+  Engagement,
+  Partner,
+  Project,
+  ProjectStudyStatus,
+  Sector,
+  Service,
+  Settings,
+  SettingKey,
+  SocialLink,
+  TeamMember,
+};
+export { STUDY_LABEL, STUDY_PARTS } from "./content-types";
 
 /**
  * Everything the public site reads, from one place.
@@ -35,115 +65,37 @@ import type { SocialPlatform } from "./supabase/types";
  * runtime surprise.
  */
 
-/* ── Domain shapes ─────────────────────────────────────────────────────────
- *
- * The shapes the components already use. Kept deliberately: the database is a
- * new source for the same content, and rewriting every component's props to
- * match table columns would be churn without a reason.
- */
-
-export interface ContentImage {
-  src: string;
-  alt: string;
-}
-
-export type ProjectStudyStatus = "concept" | "client";
-
-export interface Project {
-  slug: string;
-  index: string;
-  title: string;
-  sector: string;
-  year: string;
-  disciplines: string[];
-  summary: string;
-  cover: ContentImage;
-  hero: ContentImage;
-  gallery: ContentImage[];
-  scenario: string;
-  direction: string;
-  demonstration: string;
-  studyType: ProjectStudyStatus;
-}
-
-export interface Service {
-  id: string;
-  number: string;
-  title: string;
-  summary: string;
-  image: ContentImage;
-  hero: ContentImage & { label: string; note: string };
-}
-
-export interface TeamMember {
-  slug: string;
-  index: string;
-  name: string;
-  role: string;
-  shortBio: string;
-  longBio: string;
-  photo: ContentImage | null;
-  linkedinUrl: string | null;
-  instagramUrl: string | null;
-  twitterUrl: string | null;
-}
-
-export interface Sector {
-  slug: string;
-  number: string;
-  name: string;
-  summary: string;
-  problem: string;
-  visual: ContentImage | null;
-}
-
-export interface Engagement {
-  number: string;
-  title: string;
-  duration: string;
-  description: string;
-}
-
-export interface Partner {
-  id: string;
-  name: string;
-  placeholder: boolean;
-}
-
-export interface SocialLink {
-  platform: SocialPlatform;
-  label: string;
-  url: string;
-}
-
-export type SettingKey =
-  | "contact_email"
-  | "booking_email"
-  | "site_title"
-  | "site_description"
-  | "availability_text"
-  | "footer_statement";
-
-export type Settings = Record<SettingKey, string>;
-
-/** What a concept study is called, in one place so the wording cannot drift. */
-export const STUDY_LABEL: Record<ProjectStudyStatus, string> = {
-  concept: "Concept study",
-  client: "Client project",
-};
-
 /* ── The decision ──────────────────────────────────────────────────────── */
 
 /**
  * Whether to read the seed instead of the database.
  *
- * Throws in production rather than returning true, so a misconfigured deploy
- * fails visibly on the first content page instead of quietly serving copy that
- * nothing can edit.
+ * Three states, and the third is the one worth explaining.
+ *
+ * Configured: no. Development and unconfigured: yes, loudly. Production and
+ * unconfigured: throws, so a misconfigured deploy fails visibly on the first
+ * content page instead of quietly serving copy that nothing can edit.
+ *
+ * The third state is a production *build* with no credentials — CI, a preview,
+ * a deploy set up before the Supabase project exists. Failing there would mean
+ * the site cannot be built at all without a database, which is a worse rule
+ * than it sounds: it makes every pipeline hold production secrets. So the build
+ * is allowed to finish, and `connection()` is what keeps that honest. Awaiting
+ * it bails out of prerendering, so the page is marked dynamic and the seed is
+ * never frozen into a built page. At request time this function runs again with
+ * `isBuildPhase()` false and throws — the refusal happens where it belongs,
+ * against a real request, with the message that says what to set.
  */
-function useSeed(what: string) {
+async function readsSeed(what: string) {
   if (isSupabaseConfigured()) return false;
-  if (isProduction()) throw new SupabaseNotConfiguredError(what);
+
+  if (isProduction()) {
+    if (!isBuildPhase()) throw new SupabaseNotConfiguredError(what);
+    // Bails the prerender. Nothing after this line runs during the build.
+    await connection();
+    throw new SupabaseNotConfiguredError(what);
+  }
+
   announceSeedFallback();
   return true;
 }
@@ -241,9 +193,9 @@ function toProject(row: ProjectQueryRow): Project {
 }
 
 export async function getProjects(): Promise<Project[]> {
-  if (useSeed("The work archive")) return seedProjects();
+  if (await readsSeed("The work archive")) return seedProjects();
 
-  const supabase = await serverClient();
+  const supabase = publicClient();
   const { data, error } = await supabase
     .from("projects")
     .select(PROJECT_QUERY)
@@ -260,11 +212,11 @@ export async function getSelectedProjects(): Promise<Project[]> {
 }
 
 export async function getProject(slug: string): Promise<Project | null> {
-  if (useSeed("This case study")) {
+  if (await readsSeed("This case study")) {
     return seedProjects().find((p) => p.slug === slug) ?? null;
   }
 
-  const supabase = await serverClient();
+  const supabase = publicClient();
   const { data, error } = await supabase
     .from("projects")
     .select(PROJECT_QUERY)
@@ -287,7 +239,7 @@ export async function getNextProject(slug: string): Promise<Project | null> {
 /* ── Services ──────────────────────────────────────────────────────────── */
 
 export async function getServices(): Promise<Service[]> {
-  if (useSeed("The services section")) {
+  if (await readsSeed("The services section")) {
     return SEED_SERVICES.map((s) => ({
       id: s.slug,
       number: s.number,
@@ -298,7 +250,7 @@ export async function getServices(): Promise<Service[]> {
     }));
   }
 
-  const supabase = await serverClient();
+  const supabase = publicClient();
   const { data, error } = await supabase
     .from("services")
     .select(
@@ -311,8 +263,11 @@ export async function getServices(): Promise<Service[]> {
 
   if (error) throw error;
 
+  // `id` is the slug rather than the row's uuid: it is what the booking form
+  // submits and what the API validates against, so it has to be the same
+  // string whether the services came from Supabase or from the seed.
   return (data as unknown as {
-    id: string;
+    slug: string;
     number: string;
     title: string;
     short_description: string;
@@ -321,7 +276,7 @@ export async function getServices(): Promise<Service[]> {
     visual: JoinedMedia;
     hero: JoinedMedia;
   }[]).map((row) => ({
-    id: row.id,
+    id: row.slug,
     number: row.number,
     title: row.title,
     summary: row.short_description,
@@ -339,7 +294,7 @@ export async function getServices(): Promise<Service[]> {
 export async function getTeam(): Promise<TeamMember[]> {
   const number = (i: number) => String(i + 1).padStart(2, "0");
 
-  if (useSeed("The team")) {
+  if (await readsSeed("The team")) {
     return SEED_TEAM.map((person, i) => ({
       slug: person.slug,
       index: number(i),
@@ -354,7 +309,7 @@ export async function getTeam(): Promise<TeamMember[]> {
     }));
   }
 
-  const supabase = await serverClient();
+  const supabase = publicClient();
   const { data, error } = await supabase
     .from("team_members")
     .select(
@@ -395,7 +350,7 @@ export async function getTeam(): Promise<TeamMember[]> {
 /* ── Who we work with ──────────────────────────────────────────────────── */
 
 export async function getSectors(): Promise<Sector[]> {
-  if (useSeed("The sectors page")) {
+  if (await readsSeed("The sectors page")) {
     return SEED_SECTORS.map((s) => ({
       slug: s.slug,
       number: s.number,
@@ -406,7 +361,7 @@ export async function getSectors(): Promise<Sector[]> {
     }));
   }
 
-  const supabase = await serverClient();
+  const supabase = publicClient();
   const { data, error } = await supabase
     .from("sectors")
     .select(
@@ -435,9 +390,9 @@ export async function getSectors(): Promise<Sector[]> {
 }
 
 export async function getEngagements(): Promise<Engagement[]> {
-  if (useSeed("Engagements")) return SEED_ENGAGEMENTS;
+  if (await readsSeed("Engagements")) return SEED_ENGAGEMENTS;
 
-  const supabase = await serverClient();
+  const supabase = publicClient();
   const { data, error } = await supabase
     .from("engagements")
     .select("number, title, duration, description")
@@ -451,23 +406,35 @@ export async function getEngagements(): Promise<Engagement[]> {
 /* ── Partners ──────────────────────────────────────────────────────────── */
 
 export async function getPartners(): Promise<Partner[]> {
-  if (useSeed("Partners")) {
+  if (await readsSeed("Partners")) {
     return SEED_PARTNERS.map((p) => ({
       id: p.name.toLowerCase().replace(/\s+/g, "-"),
       name: p.name,
       placeholder: true,
+      logo: null,
     }));
   }
 
-  const supabase = await serverClient();
+  const supabase = publicClient();
   const { data, error } = await supabase
     .from("partners")
-    .select("id, name, placeholder")
+    .select("id, name, placeholder, logo:logo_media_id ( public_url, alt )")
     .eq("published", true)
     .order("display_order", { ascending: true });
 
   if (error) throw error;
-  return data as Partner[];
+
+  return (data as unknown as {
+    id: string;
+    name: string;
+    placeholder: boolean;
+    logo: JoinedMedia;
+  }[]).map((row) => ({
+    id: row.id,
+    name: row.name,
+    placeholder: row.placeholder,
+    logo: row.logo?.public_url ? image(row.logo, row.logo.alt ?? row.name) : null,
+  }));
 }
 
 /* ── Social links ──────────────────────────────────────────────────────── */
@@ -481,15 +448,12 @@ export async function getPartners(): Promise<Partner[]> {
  * somebody puts real ones in.
  */
 export async function getSocialLinks(): Promise<SocialLink[]> {
-  if (useSeed("Social links")) {
-    return SEED_SOCIAL.filter(() => false).map((s) => ({
-      platform: s.platform,
-      label: s.label,
-      url: "",
-    }));
-  }
+  // The seed registers the three platforms so an admin has rows to fill in,
+  // but every one of them is disabled and has no URL. Nothing renders until
+  // somebody supplies a real account address, so the seed answer is empty.
+  if (await readsSeed("Social links")) return [];
 
-  const supabase = await serverClient();
+  const supabase = publicClient();
   const { data, error } = await supabase
     .from("social_links")
     .select("platform, label, url")
@@ -506,14 +470,14 @@ export async function getSocialLinks(): Promise<SocialLink[]> {
 export async function getSettings(): Promise<Settings> {
   const defaults = SEED_SETTINGS as Settings;
 
-  if (useSeed("Site settings")) return defaults;
+  if (await readsSeed("Site settings")) return defaults;
 
-  const supabase = await serverClient();
+  const supabase = publicClient();
   const { data, error } = await supabase.from("site_settings").select("key, value");
   if (error) throw error;
 
   const merged = { ...defaults };
-  for (const row of data ?? []) {
+  for (const row of (data ?? []) as { key: string; value: string | null }[]) {
     if (row.value) merged[row.key as SettingKey] = row.value;
   }
   return merged;

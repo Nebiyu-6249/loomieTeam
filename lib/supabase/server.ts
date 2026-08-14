@@ -24,9 +24,31 @@ import {
  * constructed in a Client Component, never in the browser, and the key it uses
  * is not prefixed NEXT_PUBLIC_, so it cannot be.
  *
+ * `publicClient()` reads no cookies at all. It is what the public pages use,
+ * and the reason they use it is that touching `cookies()` opts a route out of
+ * static rendering for good: a marketing site whose every page went dynamic
+ * because its content reader happened to carry a session it never needed would
+ * be paying request-time cost for nothing. Public content is public — the anon
+ * role can read exactly the published rows and no more, which is the same
+ * answer for every visitor and therefore cacheable.
+ *
  * Uses @supabase/ssr's cookie interface. The old auth-helpers packages are
  * deprecated and are deliberately not installed.
  */
+
+/**
+ * The anonymous reader. No cookies, no session, no per-visitor variation.
+ *
+ * Row level security still applies; it applies as `anon`, which is the role
+ * the public policies were written for.
+ */
+export function publicClient() {
+  if (!isSupabaseConfigured()) throw new SupabaseNotConfiguredError("This page");
+
+  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
 
 /** The session-bearing client. Row level security applies to everything it does. */
 export async function serverClient() {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { CALL_MINUTES, STUDIO_TIMEZONE, isOfferedSlot } from "@/lib/availability";
 import { RATE_LIMIT, getBookingStore, storageAcceptsBookings } from "@/lib/bookingStore";
 import { deliver, deliveryConfigured } from "@/lib/notify";
-import { SERVICE_OPTIONS } from "@/lib/services";
+import { getServices } from "@/lib/content";
 
 /**
  * Accepts a booking, or explains why it did not.
@@ -155,9 +155,12 @@ export async function POST(request: Request) {
     return fail(409, "That time has just been taken.", "start");
   }
 
+  // Checked against the services the studio actually publishes, read from the
+  // same place the form's options came from. A service that was unpublished
+  // between the page rendering and the form submitting is refused here.
   const service =
     typeof body.service === "string" && body.service !== "" ? body.service : undefined;
-  if (service && !SERVICE_OPTIONS.includes(service)) {
+  if (service && !(await getServices()).some((s) => s.title === service)) {
     return fail(422, "Unknown service.", "service");
   }
 
