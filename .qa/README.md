@@ -10,7 +10,8 @@ These start their own server on their own port:
     SUPABASE_DB_URL="postgres://…/loomie" node .qa/booking.mjs        # 33
     SUPABASE_DB_URL="postgres://…/loomie" node .qa/booking-happy.mjs  # 38
     SUPABASE_DB_URL="postgres://…/loomie" node .qa/enquiry.mjs        # 40
-    SUPABASE_DB_URL="postgres://…/loomie" node .qa/admin.mjs          # 55
+    SUPABASE_DB_URL="postgres://…/loomie" node .qa/admin.mjs          # 57
+    SUPABASE_DB_URL="postgres://…/loomie" node .qa/media-upload.mjs   # 47
 
 The rest need one already running. `stub-and-serve.mjs` runs the PostgREST stub
 and a production server together in the foreground — foreground on purpose,
@@ -22,9 +23,9 @@ measuring a build from twenty minutes ago:
 
     BASE=http://localhost:3231 node .qa/a11y.mjs          # 65 — landmarks, headings, focus, labels
     PORT=3231 node .qa/responsive.mjs                     # overflow at 8 widths across 7 routes
-    BASE=… node .qa/hero-reel.mjs                         # 29 — the 3D service reel
+    BASE=… node .qa/hero-reel.mjs                         # 38 — the hero's spatial stack
     BASE=… node .qa/team-gallery.mjs                      # 29 — the ring, and the DOM behind it
-    BASE=… node .qa/socials.mjs                           # 10 — real links only, and revalidation
+    BASE=… node .qa/socials.mjs                           # 16 — real links only, and revalidation
     BASE=… node .qa/bundle.mjs                            # which libraries reach which route
     node .qa/weight2.mjs                                  # initial JS, and what three.js adds
     SUPABASE_DB_URL="…" node .qa/hero-from-db.mjs         # 5 — the hero is not a constant
@@ -41,6 +42,18 @@ not through a browser:
     SUPABASE_DB_URL="postgres://…/loomie_test" npm run db:test   # 71
 
 Anything needing a browser also needs `playwright` resolvable from the repo.
+
+## storageStub.mjs
+
+Supabase Storage is a different service from PostgREST, and the media uploader
+now talks to it directly from the browser. This is a Storage-shaped front door
+with the objects held in memory: signed upload tickets, the PUT that spends one,
+`info`, `remove`, and the public URL.
+
+Its `faults` object is the reason it exists. A missing bucket, a refused upload
+and a failed read-back are the cases that decide whether a half-finished upload
+leaves an orphan behind, and none of them can be caused on demand against a real
+project. `.qa/media-upload.mjs` switches each one on in turn.
 
 ## postgrestStub.mjs
 

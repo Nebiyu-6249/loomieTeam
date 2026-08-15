@@ -123,6 +123,19 @@ const DURABLE = {
 /* ── 1. The enquiry that works ───────────────────────────────────────────── */
 
 console.log("\n1. A written enquiry");
+/**
+ * Set here rather than read from whatever happens to be in the database.
+ *
+ * The block below proves the setting wins over BOOKING_TO_EMAIL, which is only
+ * a real test if the setting has a known value — against a fresh database it is
+ * null, the fallback applies, and the assertion fails for the one reason it is
+ * not meant to be testing. Block 1b clears it again and checks the fallback.
+ */
+await db.query(
+  `insert into site_settings (key, value) values ('booking_email', 'studio-inbox@example.com')
+   on conflict (key) do update set value = excluded.value`
+);
+
 await withServer(3316, DURABLE, async (base) => {
   const response = await post(base, valid());
   const body = await response.json();
