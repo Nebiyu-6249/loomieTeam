@@ -1,5 +1,6 @@
 import http from "node:http";
 import pg from "pg";
+import { makeStorage } from "./storageStub.mjs";
 
 /**
  * A PostgREST-shaped front door onto the real local Postgres.
@@ -280,9 +281,46 @@ export async function startPostgrestStub(port, connectionString, options = {}) {
   const serviceKey = options.serviceKey ?? "stub-secret";
   const users = new Map();
   const auth = makeAuth(users);
+  const storage = makeStorage();
 
   const server = http.createServer(async (request, response) => {
     const url = new URL(request.url, `http://localhost:${port}`);
+
+    /**
+     * Cross-origin headers, because the browser now talks to Storage directly.
+     *
+     * The media uploader PUTs the file from the page's origin to Supabase's,
+     * which makes it a cross-origin request with a custom header — so the
+     * browser sends a preflight first and refuses the upload unless it is
+     * answered. Real Supabase Storage answers it; a stub that does not turns
+     * "direct upload" into ERR_FAILED and looks like a bug in the uploader.
+     *
+     * The origin is echoed rather than starred so credentialed requests work
+     * too, which is what supabase-js sends for the REST and auth calls.
+     */
+    const origin = request.headers.origin;
+    if (origin) {
+      response.setHeader("Access-Control-Allow-Origin", origin);
+      response.setHeader("Access-Control-Allow-Credentials", "true");
+      response.setHeader("Vary", "Origin");
+    } else {
+      response.setHeader("Access-Control-Allow-Origin", "*");
+    }
+    response.setHeader("Access-Control-Allow-Methods", "GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS");
+    response.setHeader(
+      "Access-Control-Allow-Headers",
+      request.headers["access-control-request-headers"] ??
+        "authorization,apikey,content-type,prefer,accept,x-upsert,cache-control,x-client-info"
+    );
+    response.setHeader("Access-Control-Expose-Headers", "Content-Range,Content-Length,ETag");
+    response.setHeader("Access-Control-Max-Age", "600");
+
+    if (request.method === "OPTIONS") {
+      response.writeHead(204);
+      response.end();
+      return;
+    }
+
     const client = await pool.connect();
     let released = false;
     const release = () => {
@@ -306,6 +344,28 @@ export async function startPostgrestStub(port, connectionString, options = {}) {
         response.end(payload);
       });
     };
+
+    /**
+     * Storage is a different service on the same origin, and it holds no
+     * database connection — so it is answered before the pool work below and
+     * releases the client it never used.
+     */
+    if (url.pathname.startsWith("/storage/v1/")) {
+      const readRaw = async () => {
+        const chunks = [];
+        for await (const chunk of request) chunks.push(chunk);
+        return Buffer.concat(chunks);
+      };
+      const sendRaw = (status, buffer, headers = {}) => {
+        release();
+        response.writeHead(status, headers);
+        response.end(buffer);
+      };
+      if (process.env.STUB_DEBUG) {
+        console.log("[stub-storage]", request.method, url.pathname + url.search);
+      }
+      return storage.handle(url, request, readRaw, send, sendRaw);
+    }
 
     if (url.pathname.startsWith("/auth/v1/")) {
       if (process.env.STUB_DEBUG) {
@@ -659,6 +719,8 @@ export async function startPostgrestStub(port, connectionString, options = {}) {
     serviceKey,
     /** Registers an account the stub's /auth/v1/token will accept. */
     addUser: (id, email, password) => auth.add(id, email, password),
+    /** The in-memory Storage: assertions, and the fault switches. */
+    storage,
     query: (sql, params) => pool.query(sql, params),
     async reset() {
       await pool.query("delete from bookings");
