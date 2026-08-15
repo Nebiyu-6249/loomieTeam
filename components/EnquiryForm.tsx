@@ -20,7 +20,7 @@ import type { Service } from "@/lib/content-types";
 type State =
   | { status: "idle" }
   | { status: "sending" }
-  | { status: "sent" }
+  | { status: "sent"; notified: boolean }
   | { status: "error"; message: string; field?: string };
 
 export function EnquiryForm({ services }: { services: Service[] }) {
@@ -65,6 +65,7 @@ export function EnquiryForm({ services }: { services: Service[] }) {
         ok: boolean;
         error?: string;
         field?: string;
+        notified?: boolean;
       };
 
       if (!response.ok || !body.ok) {
@@ -76,7 +77,7 @@ export function EnquiryForm({ services }: { services: Service[] }) {
         return;
       }
 
-      setState({ status: "sent" });
+      setState({ status: "sent", notified: body.notified !== false });
     } catch {
       setState({
         status: "error",
@@ -96,10 +97,13 @@ export function EnquiryForm({ services }: { services: Service[] }) {
         <h3 className="font-display font-normal text-2xl md:text-3xl leading-none text-foreground">
           Message sent
         </h3>
+        {/* Two different things happened, and they deserve two different
+            sentences. The message is recorded either way; whether anybody has
+            been alerted to it yet is what changes. */}
         <p className="mt-4 max-w-md text-base leading-snug text-foreground-secondary">
-          It has reached the studio and somebody will reply to the address you
-          gave. If it is urgent, a reply to that email is the fastest way back
-          to us.
+          {state.notified
+            ? "It has reached the studio and somebody will reply to the address you gave. If it is urgent, a reply to that email is the fastest way back to us."
+            : "It is recorded and the studio will see it. Our notification email did not go out, so a reply may take a little longer than usual."}
         </p>
       </div>
     );

@@ -7,7 +7,7 @@ import { getProjects } from "@/lib/content";
 export const metadata: Metadata = {
   title: "Work — Loomie",
   description:
-    "The Loomie work index. Identity, websites and marketing design.",
+    "The Loomie work index. Logo design, brand identity, marketing design and website design.",
 };
 
 /**

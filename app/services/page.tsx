@@ -8,7 +8,7 @@ import { getServices } from "@/lib/content";
 export const metadata: Metadata = {
   title: "Services — Loomie",
   description:
-    "Identity, web identity, marketing design and websites from Loomie.",
+    "Logo design, brand identity, marketing design and website design from Loomie.",
 };
 
 export default async function ServicesPage() {
