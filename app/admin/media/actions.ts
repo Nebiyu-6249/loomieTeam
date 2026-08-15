@@ -24,6 +24,17 @@ import type { FormState } from "@/app/admin/crud";
  * upload with a message about a bucket policy. The *permission* to be here at
  * all is still checked — requireAdmin runs first — and the database row is
  * still written through the administrator's own session, where RLS applies.
+ *
+ * ── What "public bucket" means, stated plainly ───────────────────────────
+ * Row level security governs the `media` row, not the bytes. The bucket is
+ * public, so every uploaded object is readable by anyone who knows its URL —
+ * before it is used anywhere, while it is unpublished, and after it is
+ * detached. Deleting the row removes the object too, and that is the only
+ * thing here that makes a file stop being downloadable.
+ *
+ * Nothing in this application makes public Storage objects private, and the
+ * admin says so at the point of upload rather than leaving somebody to assume
+ * otherwise.
  */
 
 const BUCKET = "site";
