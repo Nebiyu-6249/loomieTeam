@@ -1,15 +1,20 @@
 /**
- * The hero reel: the service names, the mechanism, and the restraint.
+ * The hero's spatial stack.
  *
- * The geometry assertions are the interesting ones. A reel that looks right in
- * a screenshot can still be a flat cross-fade with a perspective property
- * nothing uses, so these read the actual matrices: the drum has to sit a radius
- * back, the front face has to land exactly on the frame, and the face behind it
- * has to be foreshortened rather than merely hidden.
+ * The assertion that matters is the first one, and it is the reason this suite
+ * was rewritten. The previous reel was a closed prism, and it passed a suite
+ * that checked the front face filled the frame and the others were hidden —
+ * which is exactly the bug: at rest it was one flat rectangle, and the depth
+ * only existed during the turn. A still screenshot of the hero could not be
+ * told apart from the image card it replaced.
+ *
+ * So block 1 is the acceptance test written down: without touching anything,
+ * more than one plane has to be visible, at different depths, at different
+ * sizes. Everything after that is the behaviour around it.
  */
 import { chromium } from "playwright";
 
-const base = process.env.BASE ?? "http://localhost:3220";
+const base = process.env.BASE ?? "http://localhost:3231";
 
 let passed = 0;
 let failed = 0;
@@ -28,186 +33,235 @@ const browser = await chromium.launch({
   args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
 });
 
-/** The drum, its faces, and where they actually are. */
-const geometry = (page) =>
+/** Every plane's depth, size, opacity and rotation, straight off the DOM. */
+const readPlanes = (page) =>
   page.evaluate(() => {
-    const stage = document.getElementById("hero-visual");
-    if (!stage) return null;
-    const drum = stage.firstElementChild.firstElementChild;
-    const rect = stage.getBoundingClientRect();
-    const read = (element) => {
-      const m = new DOMMatrix(getComputedStyle(element).transform);
-      return { z: Math.round(m.m43), rotX: Math.round(Math.atan2(m.m23, m.m22) * (180 / Math.PI)) };
-    };
-    return {
-      perspective: getComputedStyle(stage).perspective,
-      overflow: getComputedStyle(stage).overflow,
-      stage: { w: Math.round(rect.width), h: Math.round(rect.height) },
-      drum: read(drum),
-      faces: [...drum.children].map((face) => {
-        const fr = face.getBoundingClientRect();
-        return { ...read(face), w: Math.round(fr.width), h: Math.round(fr.height) };
-      }),
-    };
+    return [...document.querySelectorAll("[data-hero-plane]")].map((el) => {
+      const style = getComputedStyle(el);
+      const matrix = new DOMMatrix(style.transform);
+      const box = el.getBoundingClientRect();
+      // rotateY, recovered from the matrix.
+      const rotateY = Math.round((Math.asin(Math.max(-1, Math.min(1, -matrix.m31))) * 180) / Math.PI);
+      return {
+        index: Number(el.getAttribute("data-hero-plane")),
+        active: el.getAttribute("data-hero-active") === "true",
+        z: Math.round(matrix.m43),
+        rotateY,
+        opacity: Number(style.opacity),
+        width: Math.round(box.width),
+        height: Math.round(box.height),
+        left: Math.round(box.left),
+        right: Math.round(box.right),
+      };
+    });
   });
 
+const activeLabel = (page) =>
+  page.locator('#hero-visual').getAttribute("aria-labelledby");
+
 try {
-  /* ── 1. The services are the new ones ─────────────────────────────────── */
-  console.log("\n1. The service names");
+  /* ── 1. Depth is visible without touching anything ────────────────────── */
+  console.log("\n1. Spatial at rest");
   {
     const context = await browser.newContext({ viewport: { width: 1440, height: 950 } });
     const page = await context.newPage();
     await page.goto(base, { waitUntil: "networkidle" });
-    await page.waitForTimeout(2500);
+    await page.waitForTimeout(2600);
+
+    const planes = await readPlanes(page);
+    check("there is a plane per service", planes.length === 4, String(planes.length));
+
+    const visible = planes.filter((p) => p.opacity > 0.05);
+    check("more than one is visible at rest", visible.length >= 3, `${visible.length} visible`);
+
+    const depths = new Set(planes.map((p) => p.z));
+    check("they sit at different depths", depths.size === 4, [...depths].join(", "));
+
+    const widths = new Set(planes.map((p) => p.width));
+    check("and are drawn at different sizes", widths.size >= 3, [...widths].join(", "));
+
+    const opacities = new Set(planes.map((p) => p.opacity.toFixed(2)));
+    check("and at different strengths", opacities.size >= 3, [...opacities].join(", "));
+
+    const active = planes.find((p) => p.active);
+    check("exactly one is active", planes.filter((p) => p.active).length === 1);
+    check("the active one is fully opaque", active.opacity === 1, String(active.opacity));
+    check("and is the largest", active.width === Math.max(...planes.map((p) => p.width)),
+      `${active.width} vs ${Math.max(...planes.map((p) => p.width))}`);
+    check("and is nearest the viewer", active.z === Math.max(...planes.map((p) => p.z)),
+      `${active.z} vs ${Math.max(...planes.map((p) => p.z))}`);
+
+    // The failure mode being guarded against: one plane covering everything.
+    const others = planes.filter((p) => !p.active && p.opacity > 0.05);
+    const peeking = others.filter(
+      (p) => p.left < active.left - 8 || p.right > active.right + 8
+    );
+    check("neighbours are not hidden behind the active plane",
+      peeking.length >= 2, `${peeking.length} peek out`);
+
+    check("the object does not fill its column edge to edge",
+      active.width < 520, `active is ${active.width}px wide`);
+
+    await context.close();
+  }
+
+  /* ── 2. Choosing a service reorganises the stack ──────────────────────── */
+  console.log("\n2. The stack reorganises");
+  {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+    const page = await context.newPage();
+    await page.goto(base, { waitUntil: "networkidle" });
+    await page.waitForTimeout(2600);
+
+    const before = await readPlanes(page);
+    const wasActive = before.find((p) => p.active).index;
 
     const tabs = page.locator('[role="tablist"][aria-label="Services overview"] [role="tab"]');
-    const labels = (await tabs.allTextContents()).map((t) => t.replace(/^\d+/, "").trim());
+    check("the index has four controls", (await tabs.count()) === 4);
 
-    const expected = ["Logo Design", "Brand Identity", "Marketing Design", "Website Design"];
-    check("the index lists exactly the four services", labels.length === 4, labels.join(" | "));
-    for (const [i, name] of expected.entries()) {
-      check(`  ${String(i + 1).padStart(2, "0")} is ${name}`, labels[i] === name, labels[i]);
-    }
-
-    const body = await page.locator("body").innerText();
-    for (const old of ["Web identity", "Websites"]) {
-      check(`the homepage no longer says "${old}"`, !body.includes(old), old);
-    }
-
-    /* ── 2. It is really three-dimensional ──────────────────────────────── */
-    console.log("\n2. The mechanism");
-    const g = await geometry(page);
-    check("the stage has a perspective", g && /^\d+px$/.test(g.perspective), g?.perspective);
-
-    const px = parseInt(g.perspective, 10);
-    check("within the 1600–2200px band", px >= 1600 && px <= 2200, String(px));
-    check("and it clips, so nothing spills past the frame", g.overflow === "hidden", g.overflow);
-
-    const radius = Math.round(g.stage.h / 2);
-    check(
-      "the drum sits one radius back",
-      Math.abs(g.drum.z + radius) <= 2,
-      `drum z ${g.drum.z}, radius ${radius}`
-    );
-    check(
-      "so the front face lands exactly on the frame",
-      g.faces[0].w === g.stage.w && g.faces[0].h === g.stage.h,
-      `${g.faces[0].w}x${g.faces[0].h} vs ${g.stage.w}x${g.stage.h}`
-    );
-    check(
-      "the next face is turned a quarter of the way round",
-      Math.abs(Math.abs(g.faces[1].rotX) - 90) <= 1,
-      String(g.faces[1].rotX)
-    );
-    check(
-      "and reads as a foreshortened edge rather than a hidden layer",
-      g.faces[1].h > 0 && g.faces[1].h < g.stage.h * 0.25,
-      `${g.faces[1].h}px tall`
-    );
-
-    /* ── 3. The index turns it ──────────────────────────────────────────── */
-    console.log("\n3. The index controls the reel");
     await tabs.nth(2).hover();
     await page.waitForTimeout(900);
 
-    const turned = await geometry(page);
-    check(
-      "hovering the third service turns the drum",
-      turned.drum.rotX !== g.drum.rotX,
-      `${g.drum.rotX} -> ${turned.drum.rotX}`
-    );
-    check(
-      "and the caption follows",
-      (await page.locator("figcaption").innerText()).toUpperCase().includes("MARKETING"),
-      await page.locator("figcaption").innerText()
-    );
-    check(
-      "the third tab is the selected one",
-      (await tabs.nth(2).getAttribute("aria-selected")) === "true"
-    );
+    const after = await readPlanes(page);
+    const nowActive = after.find((p) => p.active).index;
 
-    /* ── 4. Keyboard ────────────────────────────────────────────────────── */
-    console.log("\n4. Keyboard");
-    await tabs.nth(0).focus();
-    check("focusing a tab selects it", (await tabs.nth(0).getAttribute("aria-selected")) === "true");
-    check(
-      "the index is one tab stop",
-      (await tabs.nth(1).getAttribute("tabindex")) === "-1",
-      await tabs.nth(1).getAttribute("tabindex")
-    );
+    check("hovering a service selects it", nowActive === 2, String(nowActive));
+    check("the plane that was active has receded",
+      after[wasActive].z < before[wasActive].z && after[wasActive].opacity < 1,
+      `z ${before[wasActive].z} -> ${after[wasActive].z}, opacity ${after[wasActive].opacity}`);
+    check("the chosen plane has come forward",
+      after[2].z > before[2].z && after[2].opacity === 1,
+      `z ${before[2].z} -> ${after[2].z}`);
 
-    await page.keyboard.press("ArrowRight");
-    await page.waitForTimeout(700);
-    check(
-      "ArrowRight moves to the next service",
-      (await tabs.nth(1).getAttribute("aria-selected")) === "true"
-    );
+    const moved = after.filter((p, i) => p.z !== before[i].z).length;
+    check("every plane moved, not just two", moved === 4, `${moved} moved`);
 
-    await page.keyboard.press("End");
-    await page.waitForTimeout(700);
-    check(
-      "End jumps to the last",
-      (await tabs.nth(3).getAttribute("aria-selected")) === "true"
-    );
-
-    // From the last, forward should wrap to the first by the short way round.
-    const atEnd = await geometry(page);
-    await page.keyboard.press("ArrowRight");
-    await page.waitForTimeout(900);
-    const wrapped = await geometry(page);
-    check(
-      "wrapping past the last turns one quarter, not three",
-      Math.abs(Math.abs(wrapped.drum.rotX - atEnd.drum.rotX) - 90) <= 2 ||
-        Math.abs(Math.abs(wrapped.drum.rotX - atEnd.drum.rotX) - 270) > 2,
-      `${atEnd.drum.rotX} -> ${wrapped.drum.rotX}`
-    );
-
-    check(
-      "the reel is the tab's panel",
-      (await page.locator("#hero-visual").getAttribute("role")) === "tabpanel"
-    );
+    check("the caption follows the selection",
+      (await activeLabel(page)) === "hero-service-2", await activeLabel(page));
 
     await context.close();
   }
 
-  /* ── 5. It advances on its own, then stops ────────────────────────────── */
-  console.log("\n5. Idle advance, and giving it up");
+  /* ── 3. The turn is in the band asked for ─────────────────────────────── */
+  console.log("\n3. Timing");
   {
     const context = await browser.newContext({ viewport: { width: 1440, height: 950 } });
     const page = await context.newPage();
     await page.goto(base, { waitUntil: "networkidle" });
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(2600);
 
     const tabs = page.locator('[role="tablist"][aria-label="Services overview"] [role="tab"]');
-    const first = await geometry(page);
+    await tabs.nth(1).hover();
 
-    // The interval is 5.5s; wait past one.
-    await page.waitForTimeout(6500);
-    const advanced = await geometry(page);
-    check(
-      "it advances by itself before anybody touches it",
-      advanced.drum.rotX !== first.drum.rotX,
-      `${first.drum.rotX} -> ${advanced.drum.rotX}`
-    );
+    // Sample until the nearest plane's depth stops changing.
+    const started = Date.now();
+    let settled = started;
+    let last = null;
+    for (let i = 0; i < 60; i += 1) {
+      const planes = await readPlanes(page);
+      const signature = planes.map((p) => p.z).join(",");
+      if (signature !== last) {
+        settled = Date.now();
+        last = signature;
+      }
+      if (Date.now() - settled > 220) break;
+      await page.waitForTimeout(35);
+    }
 
-    // Interact, then confirm it has stopped for good.
-    await tabs.nth(0).hover();
-    await page.waitForTimeout(1200);
-    const engaged = await geometry(page);
-    await page.mouse.move(10, 10);
-    await page.waitForTimeout(8000);
-    const later = await geometry(page);
-    check(
-      "and stops permanently once the visitor takes over",
-      later.drum.rotX === engaged.drum.rotX,
-      `${engaged.drum.rotX} -> ${later.drum.rotX} after 8s`
-    );
+    const duration = settled - started;
+    check("the move takes roughly half a second", duration >= 380 && duration <= 1100,
+      `${duration}ms measured (sampling adds overhead)`);
 
     await context.close();
   }
 
-  /* ── 6. Reduced motion ────────────────────────────────────────────────── */
-  console.log("\n6. Reduced motion");
+  /* ── 4. Keyboard ──────────────────────────────────────────────────────── */
+  console.log("\n4. Keyboard");
+  {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+    const page = await context.newPage();
+    await page.goto(base, { waitUntil: "networkidle" });
+    await page.waitForTimeout(2600);
+
+    const tabs = page.locator('[role="tablist"][aria-label="Services overview"] [role="tab"]');
+    await tabs.first().focus();
+    check("the index is focusable", await tabs.first().evaluate((el) => el === document.activeElement));
+
+    await page.keyboard.press("ArrowRight");
+    await page.waitForTimeout(800);
+    check("ArrowRight advances", (await readPlanes(page)).find((p) => p.active).index === 1);
+
+    await page.keyboard.press("ArrowLeft");
+    await page.waitForTimeout(800);
+    check("ArrowLeft goes back", (await readPlanes(page)).find((p) => p.active).index === 0);
+
+    await page.keyboard.press("End");
+    await page.waitForTimeout(800);
+    check("End reaches the last", (await readPlanes(page)).find((p) => p.active).index === 3);
+
+    await page.keyboard.press("Home");
+    await page.waitForTimeout(800);
+    check("Home returns to the first", (await readPlanes(page)).find((p) => p.active).index === 0);
+
+    const stops = await tabs.evaluateAll((els) =>
+      els.map((el) => el.getAttribute("tabindex")).filter((v) => v === "0").length
+    );
+    check("the whole index is one tab stop", stops === 1, String(stops));
+
+    await context.close();
+  }
+
+  /* ── 5. It stops advancing once taken hold of ─────────────────────────── */
+  console.log("\n5. Idle advance, and its end");
+  {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+    const page = await context.newPage();
+    await page.goto(base, { waitUntil: "networkidle" });
+    await page.waitForTimeout(2000);
+
+    const first = (await readPlanes(page)).find((p) => p.active).index;
+    await page.waitForTimeout(7000);
+    const drifted = (await readPlanes(page)).find((p) => p.active).index;
+    check("it advances on its own before anybody interacts", drifted !== first,
+      `${first} -> ${drifted}`);
+
+    const tabs = page.locator('[role="tablist"][aria-label="Services overview"] [role="tab"]');
+    await tabs.nth(0).click();
+    await page.waitForTimeout(1000);
+    const held = (await readPlanes(page)).find((p) => p.active).index;
+
+    await page.waitForTimeout(8000);
+    check("and stops for good once it has been used",
+      (await readPlanes(page)).find((p) => p.active).index === held,
+      `${held} -> ${(await readPlanes(page)).find((p) => p.active).index}`);
+
+    await context.close();
+  }
+
+  /* ── 6. It does not eat the page's scroll ─────────────────────────────── */
+  console.log("\n6. Scrolling past it");
+  {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+    const page = await context.newPage();
+    await page.goto(base, { waitUntil: "networkidle" });
+    await page.waitForTimeout(2600);
+
+    const box = await page.locator("#hero-visual").boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+
+    const before = await page.evaluate(() => window.scrollY);
+    await page.mouse.wheel(0, 600);
+    await page.waitForTimeout(1200);
+    const after = await page.evaluate(() => window.scrollY);
+
+    check("a wheel over the object still scrolls the page", after > before + 100,
+      `${before} -> ${after}`);
+
+    await context.close();
+  }
+
+  /* ── 7. Reduced motion keeps the composition ──────────────────────────── */
+  console.log("\n7. Reduced motion");
   {
     const context = await browser.newContext({
       viewport: { width: 1440, height: 950 },
@@ -215,44 +269,94 @@ try {
     });
     const page = await context.newPage();
     await page.goto(base, { waitUntil: "networkidle" });
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(2600);
 
-    const flat = await page.evaluate(() => {
-      const stage = document.getElementById("hero-visual");
-      const drum = stage.firstElementChild.firstElementChild;
-      const faces = [...drum.children];
-      return {
-        perspective: getComputedStyle(stage).perspective,
-        faceTransforms: faces.map((f) => getComputedStyle(f).transform),
-        visible: faces.map((f) => getComputedStyle(f).opacity),
-      };
-    });
+    const planes = await readPlanes(page);
+    check("all four planes are still there", planes.length === 4);
+    check("the layering is preserved",
+      new Set(planes.map((p) => p.width)).size >= 3,
+      planes.map((p) => p.width).join(", "));
+    check("more than one is visible", planes.filter((p) => p.opacity > 0.05).length >= 3);
+    check("nothing is rotated", planes.every((p) => Math.abs(p.rotateY) <= 1),
+      planes.map((p) => p.rotateY).join(", "));
 
-    check("no perspective is applied", flat.perspective === "none", flat.perspective);
-    check(
-      "no face is rotated",
-      flat.faceTransforms.every((t) => t === "none"),
-      flat.faceTransforms.join(" | ")
-    );
-    check(
-      "exactly one face is shown",
-      flat.visible.filter((o) => Number(o) > 0).length === 1,
-      flat.visible.join(",")
-    );
+    const active = planes.find((p) => p.active);
+    check("the active plane is still dominant",
+      active.opacity === 1 && active.width === Math.max(...planes.map((p) => p.width)));
 
+    // Selecting still works, it just does not turn.
     const tabs = page.locator('[role="tablist"][aria-label="Services overview"] [role="tab"]');
-    await tabs.nth(2).click();
+    await tabs.nth(3).click();
+    await page.waitForTimeout(700);
+    check("and the index still changes it",
+      (await readPlanes(page)).find((p) => p.active).index === 3);
+
+    await context.close();
+  }
+
+  /* ── 8. Phone ─────────────────────────────────────────────────────────── */
+  console.log("\n8. On a phone");
+  {
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+    });
+    const page = await context.newPage();
+    await page.goto(base, { waitUntil: "networkidle" });
+    await page.waitForTimeout(2600);
+
+    const planes = await readPlanes(page);
+    check("the stack is there too", planes.filter((p) => p.opacity > 0.05).length >= 3);
+    check("and stays on screen",
+      planes.every((p) => p.left > -4 && p.right < 394),
+      planes.map((p) => `${p.left}..${p.right}`).join(" "));
+
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1
+    );
+    check("nothing overflows sideways", !overflow);
+
+    // A swipe across the object moves it; a swipe down does not trap the page.
+    const box = await page.locator("#hero-visual").boundingBox();
+    const cy = box.y + box.height / 2;
+    const before = (await readPlanes(page)).find((p) => p.active).index;
+
+    await page.touchscreen.tap(box.x + box.width / 2, cy);
+    await page.waitForTimeout(300);
+
+    // Real touch pointers: page.mouse reports pointerType "mouse", which the
+    // handler ignores on purpose so a desktop drag cannot select a service by
+    // accident.
+    await page.evaluate(
+      ({ x1, x2, y }) => {
+        const stage = document.getElementById("hero-visual");
+        const at = (x) => ({
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          pointerType: "touch",
+          isPrimary: true,
+          clientX: x,
+          clientY: y,
+        });
+        stage.dispatchEvent(new PointerEvent("pointerdown", at(x1)));
+        stage.dispatchEvent(new PointerEvent("pointermove", at((x1 + x2) / 2)));
+        stage.dispatchEvent(new PointerEvent("pointermove", at(x2)));
+        stage.dispatchEvent(new PointerEvent("pointerup", at(x2)));
+      },
+      { x1: box.x + box.width * 0.8, x2: box.x + box.width * 0.2, y: cy }
+    );
     await page.waitForTimeout(900);
 
-    const after = await page.evaluate(() => {
-      const drum = document.getElementById("hero-visual").firstElementChild.firstElementChild;
-      return [...drum.children].map((f) => getComputedStyle(f).opacity);
-    });
-    check(
-      "and the index still changes which one",
-      Number(after[2]) > 0 && Number(after[0]) === 0,
-      after.join(",")
-    );
+    const swiped = (await readPlanes(page)).find((p) => p.active).index;
+    check("a sideways drag moves the stack", swiped !== before, `${before} -> ${swiped}`);
+
+    const scrollBefore = await page.evaluate(() => window.scrollY);
+    await page.mouse.wheel(0, 500);
+    await page.waitForTimeout(900);
+    check("and a vertical scroll still works",
+      (await page.evaluate(() => window.scrollY)) > scrollBefore + 100);
 
     await context.close();
   }

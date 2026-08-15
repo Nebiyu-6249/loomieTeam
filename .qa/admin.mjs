@@ -282,6 +282,18 @@ try {
   console.log("\n7. A social link cannot be enabled without an address");
   {
     await page.goto(`${base}/admin/social`, { waitUntil: "networkidle" });
+
+    // The three seeded platforms are the ones the studio actually uses, and
+    // all three have to be listed and openable here.
+    const listed = await page.locator("tbody").innerText();
+    check("all three platforms are listed",
+      /linkedin/i.test(listed) && /instagram/i.test(listed) && /x\s*\/\s*twitter/i.test(listed),
+      listed.replace(/\s+/g, " ").slice(0, 140));
+    check("and each one opens for editing",
+      (await page.locator("tbody tr").count()) === 3 &&
+        (await page.locator('tbody a[href^="/admin/social/"]').count()) >= 3,
+      `${await page.locator("tbody tr").count()} rows`);
+
     await page.click('tbody tr:first-child a[href^="/admin/social/"]');
     await page.waitForSelector('input[name="url"]', { timeout: 10000 });
 
