@@ -36,6 +36,16 @@ export function MediaUpload() {
           before uploading — the site serves them at a fraction of the size and
           an 8MB original helps nobody.
         </span>
+        {/* Said here rather than in a policy document, because this is the
+            moment somebody decides what to upload. Row level security governs
+            the media *row*; the file itself is served straight from a public
+            bucket and stays reachable by URL even after the row is
+            unpublished. */}
+        <span className="mt-2 block text-sm text-foreground-secondary">
+          The bucket is public: once uploaded, the file is readable by anyone
+          with its address, and stays readable if you later unpublish or detach
+          it. Do not upload anything that should not be.
+        </span>
       </label>
 
       <label className="mt-7 block">

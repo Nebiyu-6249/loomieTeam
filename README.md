@@ -73,10 +73,22 @@ insert into admin_profiles (auth_user_id, name, email, role)
 values ('<the auth user id>', 'Your Name', 'you@example.com', 'owner');
 ```
 
-Everybody after that is added from inside the admin.
+Everybody after that is added from inside the admin, which sets a temporary
+password. They can change it under **Your account**, or you can send them a
+reset link from **Administrators** — that needs an SMTP provider configured
+under Authentication → Emails, and the admin says so if it is missing rather
+than reporting an email that never went.
 
-**Storage.** The media library uploads to a bucket named `site`. Create it in
-Storage and make it public, or uploads fail with a message saying so.
+**7. Storage.** The media library uploads to a bucket named `site`. Create it
+and make it public, or uploads fail with a message saying so.
+
+> Public means public. Row level security governs the `media` **row**, not the
+> bytes: every uploaded object is readable by anyone who knows its URL, before
+> it is used anywhere, while it is unpublished, and after it is detached.
+> Deleting the media row deletes the object, and that is the only thing that
+> makes a file stop being downloadable. Nothing in this application makes a
+> public Storage object private, and the upload form says so at the point
+> somebody chooses a file.
 
 ---
 
@@ -140,8 +152,10 @@ happens against a real request.
 | `npm run make-artefacts` | Regenerate the drawn plates in `public/images/work` |
 | `npm run optimise-images` | Re-encode photography |
 
-The `db:*` scripts need `SUPABASE_DB_URL`. It is a setup-time credential:
-nothing at runtime uses it, and it does not belong in the deployed environment.
+The `db:*` scripts need `SUPABASE_DB_URL`. It is a **setup-time credential**:
+no runtime code reads it, it is not needed by the deployed application, and it
+should not be added to Vercel's environment variables. Keep it where you run
+migrations from.
 
 ---
 

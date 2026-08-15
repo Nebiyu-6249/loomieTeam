@@ -37,6 +37,7 @@ export const SECTIONS: Section[] = [
   { href: "/admin/social", label: "Social links", restricted: true },
   { href: "/admin/settings", label: "Settings", restricted: true },
   { href: "/admin/people", label: "Administrators", restricted: true },
+  { href: "/admin/account", label: "Your account" },
 ];
 
 export function AdminShell({

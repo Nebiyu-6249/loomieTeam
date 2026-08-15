@@ -54,6 +54,12 @@ export default async function MediaLibrary({
       admin={admin}
       title="Media"
       description="Images available to every section. Deleting one that is still in use is refused rather than leaving a hole in a page."
+      actions={
+        <p className="max-w-xs text-sm leading-snug text-foreground-secondary">
+          Uploads go to a public bucket. Anyone with the address can open the
+          file, whether or not it is used on the site.
+        </p>
+      }
     >
       {query.error ? (
         <p role="alert" className="mb-8 border border-border-custom px-4 py-3 text-sm text-foreground">
