@@ -6,6 +6,7 @@ import { MediaItem } from "@/components/admin/MediaItem";
 import { requireAdmin } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { serverClient } from "@/lib/supabase/server";
+import { checkStorage } from "@/app/admin/media/actions";
 
 /**
  * Every image the site can use.
@@ -38,12 +39,15 @@ export default async function MediaLibrary({
   const admin = await requireAdmin();
   const supabase = await serverClient();
 
-  const [{ data }, query] = await Promise.all([
+  const [{ data }, query, storage] = await Promise.all([
     supabase
       .from("media")
       .select("id, path, public_url, alt, mime_type, size_bytes, created_at")
       .order("created_at", { ascending: false }),
     searchParams,
+    // Asked on load rather than on submit: a missing bucket is a setup mistake,
+    // and finding out after choosing a file wastes the upload.
+    checkStorage(),
   ]);
 
   const items = (data ?? []) as MediaRecord[];
@@ -73,7 +77,25 @@ export default async function MediaLibrary({
         </p>
       ) : null}
 
-      <MediaUpload />
+      {storage.ok ? (
+        <MediaUpload />
+      ) : (
+        <div
+          data-storage-missing
+          className="max-w-2xl border border-border-custom p-6"
+        >
+          <h2 className="font-mono text-xs uppercase tracking-[0.22em] text-foreground-secondary">
+            Upload unavailable
+          </h2>
+          <p role="alert" className="mt-6 text-sm leading-snug text-foreground">
+            {storage.error}
+          </p>
+          <p className="mt-3 text-sm leading-snug text-foreground-secondary">
+            Everything already in the library still works; only new uploads are
+            blocked. Reload this page once the bucket exists.
+          </p>
+        </div>
+      )}
 
       {missingAlt > 0 ? (
         <p className="mt-12 max-w-xl border-l border-border-custom pl-4 text-sm leading-snug text-foreground-secondary">
