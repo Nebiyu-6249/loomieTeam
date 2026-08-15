@@ -67,6 +67,19 @@ export const SEED_MEDIA: SeedMedia[] = [
   plate("sector-objects", "A mark applied to an object, at the sizes it has to survive", 103050),
   plate("sector-hardware", "One component set across a panel, a screen and a box", 95313),
   plate("sector-trade", "A specification table, set to be used rather than admired", 105529),
+  /**
+   * The four hero artefacts, kept under their own names.
+   *
+   * These are the drawn Loomie sheets — the mark on its construction geometry,
+   * the type specimen, the campaign formats, the built interface. They live
+   * beside `sheet-*` rather than replacing it because `sheet-*` now holds
+   * photography, and a hero that is meant to show what the studio makes should
+   * point at the studio's own work rather than at a picture of a desk.
+   */
+  plate("artefact-mark", "Loomie's mark drawn on its construction geometry, with the aperture radius marked", 100894),
+  plate("artefact-type", "A type specimen sheet showing the display face at three sizes", 141901),
+  plate("artefact-campaign", "A campaign sheet: one line and one mark as a poster, a square and a banner", 116636),
+  plate("artefact-interface", "A built page shown at desktop and phone width", 229398),
 ];
 
 /* ── Projects ─────────────────────────────────────────────────────────── */
@@ -227,7 +240,7 @@ export const SEED_SERVICES: SeedService[] = [
     heroLabel: "Logo / Mark / Construction",
     heroDescription: "Drawn from its own geometry.",
     visualKey: "sheet-mark",
-    heroKey: "sheet-mark",
+    heroKey: "artefact-mark",
   },
   {
     slug: "brand-identity",
@@ -237,7 +250,7 @@ export const SEED_SERVICES: SeedService[] = [
     heroLabel: "Identity / Type / Colour",
     heroDescription: "One system, every surface.",
     visualKey: "sheet-tone",
-    heroKey: "sheet-type",
+    heroKey: "artefact-type",
   },
   {
     slug: "marketing-design",
@@ -247,7 +260,7 @@ export const SEED_SERVICES: SeedService[] = [
     heroLabel: "Marketing / Campaign / Formats",
     heroDescription: "One line, every format.",
     visualKey: "sheet-campaign",
-    heroKey: "sheet-campaign",
+    heroKey: "artefact-campaign",
   },
   {
     slug: "website-design",
@@ -257,7 +270,7 @@ export const SEED_SERVICES: SeedService[] = [
     heroLabel: "Website / Layout / Interface",
     heroDescription: "The system, actually built.",
     visualKey: "sheet-interface",
-    heroKey: "sheet-interface",
+    heroKey: "artefact-interface",
   },
 ];
 
