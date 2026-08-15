@@ -1,174 +1,218 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import Image from "next/image";
 import { gsap } from "gsap";
 import type { Service } from "@/lib/content-types";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 /**
- * The hero's right-hand system: four services on one turning object.
+ * The hero's right-hand system: four services as one spatial object.
  *
- * The problem it replaces was not that the old treatment was ugly — it was
- * that it was disconnected. Four images cross-fading in the same rectangle
- * gave no sense that they were four faces of one thing, so pointing at a
- * service in the index and watching a picture change read as a slideshow with
- * a remote control rather than as a system answering a question.
+ * ── What was wrong with the version before this ──────────────────────────
+ * The previous reel was a closed prism: four faces at 90° on a drum, the drum
+ * pushed back by its own radius so the front face landed exactly on the frame.
+ * Geometrically that was correct, and visually it was self-defeating. A face at
+ * 90° is edge-on to the viewer, so it projects to a hairline; a face at 180° is
+ * pointing away and `backface-visibility: hidden` removed it entirely. The
+ * result at rest was one rectangular photograph filling the frame, with its
+ * neighbours reduced to invisible slivers and the stage clipping whatever was
+ * left. The three-dimensionality existed only during the 550ms of the turn — so
+ * a still screenshot of the hero was indistinguishable from a flat image card,
+ * which is exactly what it was meant to replace.
  *
- * So this is one object with four faces, and the index turns it. A visitor can
- * see the next artefact coming and the last one leaving, which is the whole
- * argument the studio is making — that these are four parts of one practice —
- * demonstrated instead of asserted.
+ * ── What this is instead ─────────────────────────────────────────────────
+ * An open stack rather than a closed solid. The planes are never edge-on and
+ * never face away: they fan back and to the side, each one further in Z, offset
+ * in X and Y, turned a few degrees and dimmed. The active plane is dominant and
+ * square to the reader; the previous one sits low and to the left; the next two
+ * step up and back to the right. Depth is legible without motion, which is the
+ * whole point — the object reads as an object in a screenshot.
+ *
+ * Choosing a service re-slots every plane at once, so the selected one comes
+ * forward, the last one recedes and the neighbours visibly reorganise. That is
+ * the same argument the old one was trying to make, made where it can be seen.
  *
  * ── Why CSS 3D and not another renderer ──────────────────────────────────
- * The homepage already defers three.js until Snow → River → Light is near, and
- * that work is worth keeping. Four planes on a rotating drum is exactly what
- * CSS transforms are for: no context to create, no shaders to compile, no
- * bytes added to the initial load, and the images are ordinary next/image so
- * they are still resized, lazy where appropriate and cached.
- *
- * ── The mechanism ────────────────────────────────────────────────────────
- * A perspective stage, a drum inside it, four faces on the drum. Each face is
- * rotated a quarter turn further round the X axis and pushed out along Z by
- * the drum's radius, so they sit on the surface of a square prism. Turning the
- * drum by −90° per service brings the next face to the front.
- *
- * The drum itself is pushed *back* by that same radius, which is the part that
- * is easy to leave out and immediately obvious when you do: without it the
- * front face sits a whole radius nearer the viewer than the frame, perspective
- * magnifies it by about fifteen percent, and the artefact spills over the edges
- * of the composition it is supposed to sit inside. Moving the drum back lands
- * the front face exactly on the frame plane at exactly its true size, and every
- * other face behind it.
- *
- * The radius is measured rather than assumed, because the stage is fluid and a
- * hardcoded one makes the faces float or sink at every width except the one it
- * was written at.
+ * The homepage defers three.js until Snow → River → Light is near, and that work
+ * is worth keeping. A handful of planes on an arc is exactly what CSS transforms
+ * are for: no context, no shaders, nothing added to the initial load, and the
+ * images stay ordinary next/image so they are resized and cached.
  *
  * ── Restraint ────────────────────────────────────────────────────────────
- * Nothing spins on its own once anybody has touched it. Before that, and only
- * when reduced motion is off, it advances slowly so a visitor who has not
- * realised the index is interactive still sees that the thing moves; the first
- * hover, focus, click or tap ends that for the rest of the session.
+ * Nothing spins. There is a slow depth drift measured in single degrees, and an
+ * auto-advance that runs only before the visitor has touched anything and only
+ * when reduced motion is off. The first hover, focus, click, key or swipe ends
+ * the auto-advance for the session — an object that keeps moving after you have
+ * taken hold of it is a demo, not a control.
  *
- * Reduced motion gets no rotation at all — the faces stack flat and cross-fade,
- * which is the same information without the movement.
+ * Reduced motion keeps the layered composition exactly as it is and replaces the
+ * rotation with a direct move: same depth, same reading, no turning.
  */
 
-/** Long enough to read as a turn, short enough not to be waited on. */
-const TURN = 0.55;
+/** Inside the 500–700ms the direction calls for. */
+const TURN = 0.62;
 
-/** How long the reel advances by itself before anybody interacts. */
+/** How long the stack advances by itself before anybody interacts. */
 const IDLE_INTERVAL = 5.5;
 
-/** Within the 1600–2200px band: deep enough to be dimensional, not a fisheye. */
-const PERSPECTIVE = 1800;
+/** Deep enough to be dimensional, shallow enough not to distort. */
+const PERSPECTIVE = 1900;
+
+const COMPACT = "(max-width: 767px)";
+
+interface Slot {
+  x: number;
+  y: number;
+  z: number;
+  ry: number;
+  scale: number;
+  opacity: number;
+}
+
+/**
+ * Where each plane sits, by its signed distance from the active one.
+ *
+ * 0 is the face being read. +1 and +2 step back and to the right, so what is
+ * coming next is visible before it arrives. −1 drops low and left, so what has
+ * just left is still on the page rather than having vanished. The asymmetry is
+ * deliberate: a symmetrical fan reads as an ornament, and this has to read as a
+ * sequence with a position in it.
+ */
+const WIDE: Record<string, Slot> = {
+  "0": { x: -152, y: 0, z: 0, ry: -7, scale: 1, opacity: 1 },
+  "1": { x: 12, y: -48, z: -230, ry: -17, scale: 0.9, opacity: 0.54 },
+  "2": { x: 106, y: -86, z: -430, ry: -23, scale: 0.82, opacity: 0.28 },
+  "-1": { x: -282, y: 56, z: -180, ry: 6, scale: 0.9, opacity: 0.44 },
+};
+
+/** The same idea with the offsets pulled in, so nothing leaves a phone screen. */
+const NARROW: Record<string, Slot> = {
+  "0": { x: -10, y: 0, z: 0, ry: -5, scale: 1, opacity: 1 },
+  "1": { x: 66, y: -26, z: -170, ry: -13, scale: 0.9, opacity: 0.5 },
+  "2": { x: 112, y: -46, z: -320, ry: -18, scale: 0.83, opacity: 0.24 },
+  "-1": { x: -86, y: 30, z: -140, ry: 5, scale: 0.9, opacity: 0.38 },
+};
+
+/** Signed distance from the active index: 0, +1, +2, −1 for four services. */
+function offsetFrom(index: number, active: number, count: number) {
+  let offset = ((index - active) % count + count) % count;
+  if (offset > count / 2) offset -= count;
+  return offset;
+}
+
+function slotFor(offset: number, compact: boolean): Slot {
+  const table = compact ? NARROW : WIDE;
+  const key = String(offset);
+  if (table[key]) return table[key];
+  // More than four services: keep stepping back rather than falling over.
+  const far = table[offset < 0 ? "-1" : "2"];
+  return { ...far, opacity: 0, z: far.z - 120 };
+}
 
 export function HeroReel({
   services,
   active,
-  /** Called when the reel advances itself, so the index stays in step. */
   onIdleAdvance,
-  /** True once the visitor has done anything at all. */
+  /** A swipe on the object itself, so a phone is not index-only. */
+  onSwipe,
   engaged,
   labelledBy,
 }: {
   services: Service[];
   active: number;
   onIdleAdvance: (index: number) => void;
+  onSwipe: (index: number) => void;
   engaged: boolean;
   labelledBy: string;
 }) {
   const prefersReducedMotion = usePrefersReducedMotion();
   const stageRef = useRef<HTMLDivElement>(null);
   const tiltRef = useRef<HTMLDivElement>(null);
-  const drumRef = useRef<HTMLDivElement>(null);
+  const driftRef = useRef<HTMLDivElement>(null);
+  const planesRef = useRef<(HTMLDivElement | null)[]>([]);
 
-  /** Measured, so the faces sit on the frame at every width. */
-  const [radius, setRadius] = useState(0);
+  const compact = useSyncExternalStore(subscribeCompact, readCompact, readCompactServer);
 
-  /**
-   * The drum's absolute angle, accumulated rather than derived.
-   *
-   * Deriving it as `active * -90` means going from the fourth service back to
-   * the first unwinds three quarters of a turn backwards — a long, showy spin
-   * that says something has gone wrong. Tracking the angle and moving by the
-   * shortest signed step keeps every change one quarter turn.
-   */
-  const angle = useRef(0);
-  const previous = useRef(active);
+  const count = services.length;
+
+  /* ── Placing the planes ───────────────────────────────────────────────── */
 
   useEffect(() => {
-    const stage = stageRef.current;
-    if (!stage) return;
+    if (count === 0) return;
 
-    const measure = () => setRadius(stage.getBoundingClientRect().height / 2);
-    measure();
+    planesRef.current.forEach((plane, index) => {
+      if (!plane) return;
+      const slot = slotFor(offsetFrom(index, active, count), compact);
 
-    const observer = new ResizeObserver(measure);
-    observer.observe(stage);
-    return () => observer.disconnect();
-  }, []);
+      const to = {
+        xPercent: -50,
+        yPercent: -50,
+        x: slot.x,
+        y: slot.y,
+        z: slot.z,
+        rotateY: slot.ry,
+        scale: slot.scale,
+        opacity: slot.opacity,
+        // Nearer planes over further ones. preserve-3d sorts by depth on its
+        // own, but opacity makes each plane its own stacking context and the
+        // sorting stops being reliable — so it is stated.
+        zIndex: 100 - Math.abs(offsetFrom(index, active, count)),
+      };
 
-  /**
-   * The drum sits a radius back, so the front face lands on the frame plane.
-   *
-   * Written through GSAP rather than as a style, because GSAP owns this
-   * element's transform once it starts animating rotateX — setting the two
-   * from different places means whichever writes last wins and the depth
-   * silently disappears mid-turn.
-   */
-  useEffect(() => {
-    const drum = drumRef.current;
-    if (!drum || prefersReducedMotion) return;
-    gsap.set(drum, { z: -radius, rotateX: angle.current });
-  }, [radius, prefersReducedMotion]);
+      if (prefersReducedMotion) {
+        // The composition is kept; only the turning is dropped. rotateY is
+        // flattened so nothing rotates, and the move is direct.
+        gsap.to(plane, {
+          ...to,
+          rotateY: 0,
+          duration: 0.25,
+          ease: "none",
+          overwrite: true,
+        });
+        return;
+      }
 
-  /* ── The turn ─────────────────────────────────────────────────────────── */
-
-  useEffect(() => {
-    const drum = drumRef.current;
-    const from = previous.current;
-    previous.current = active;
-    if (!drum || from === active || services.length === 0) return;
-
-    // Shortest way round: -2 becomes +2, +3 becomes -1.
-    const count = services.length;
-    let step = active - from;
-    if (step > count / 2) step -= count;
-    if (step < -count / 2) step += count;
-
-    angle.current -= step * (360 / count);
-
-    if (prefersReducedMotion) {
-      gsap.set(drum, { rotateX: angle.current });
-      return;
-    }
-
-    gsap.to(drum, {
-      rotateX: angle.current,
-      duration: TURN,
-      ease: "power3.out",
-      overwrite: true,
+      gsap.to(plane, { ...to, duration: TURN, ease: "power3.out", overwrite: true });
     });
-  }, [active, prefersReducedMotion, services.length]);
+  }, [active, compact, count, prefersReducedMotion]);
 
   /* ── The slow advance, until somebody takes over ──────────────────────── */
 
   useEffect(() => {
-    if (engaged || prefersReducedMotion || services.length < 2) return;
+    if (engaged || prefersReducedMotion || count < 2) return;
 
-    // A repeating call rather than a timeline: it advances the index through
-    // the same path a hover would, so there is only one way the reel moves.
-    const tick = gsap.delayedCall(IDLE_INTERVAL, function advance(this: gsap.core.Tween) {
-      onIdleAdvance((previous.current + 1) % services.length);
+    const tick = gsap.delayedCall(IDLE_INTERVAL, function advance() {
+      onIdleAdvance((active + 1) % count);
       tick.restart(true);
     });
 
     return () => {
       tick.kill();
     };
-  }, [engaged, prefersReducedMotion, services.length, onIdleAdvance]);
+  }, [engaged, prefersReducedMotion, count, onIdleAdvance, active]);
+
+  /* ── Idle depth drift ─────────────────────────────────────────────────── */
+
+  useEffect(() => {
+    const drift = driftRef.current;
+    if (!drift || prefersReducedMotion) return;
+
+    // Single digits, over six seconds. Enough that the object is alive when
+    // nothing is happening; not enough to read as an animation.
+    const tween = gsap.to(drift, {
+      z: 26,
+      rotateY: 2.2,
+      duration: 6,
+      yoyo: true,
+      repeat: -1,
+      ease: "sine.inOut",
+    });
+
+    return () => {
+      tween.kill();
+    };
+  }, [prefersReducedMotion]);
 
   /* ── Pointer parallax ─────────────────────────────────────────────────── */
 
@@ -177,16 +221,16 @@ export function HeroReel({
     if (!tilt || prefersReducedMotion) return;
     if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
 
-    // Applied to a wrapper, not the drum: the drum owns rotateX and writing
-    // both onto one element means the two animations fight over `transform`.
+    // On its own wrapper: the drift owns the element inside it and the planes
+    // own themselves, so no two animations write the same transform.
     const turn = gsap.quickTo(tilt, "rotateY", { duration: 0.9, ease: "power3.out" });
     const lift = gsap.quickTo(tilt, "rotateX", { duration: 0.9, ease: "power3.out" });
 
     const onMove = (event: PointerEvent) => {
       const x = event.clientX / window.innerWidth - 0.5;
       const y = event.clientY / window.innerHeight - 0.5;
-      turn(x * 3.2);
-      lift(y * -1.6);
+      turn(x * 3.4);
+      lift(y * -1.8);
     };
 
     window.addEventListener("pointermove", onMove, { passive: true });
@@ -196,7 +240,38 @@ export function HeroReel({
     };
   }, [prefersReducedMotion]);
 
-  const step = services.length > 0 ? 360 / services.length : 90;
+  /* ── Swipe ────────────────────────────────────────────────────────────── */
+
+  const gesture = useRef<{ x: number; y: number; used: boolean } | null>(null);
+
+  const onPointerDown = useCallback((event: React.PointerEvent) => {
+    if (event.pointerType === "mouse") return;
+    gesture.current = { x: event.clientX, y: event.clientY, used: false };
+  }, []);
+
+  const onPointerMove = useCallback(
+    (event: React.PointerEvent) => {
+      const start = gesture.current;
+      if (!start || start.used || count < 2) return;
+
+      const dx = event.clientX - start.x;
+      const dy = event.clientY - start.y;
+
+      // Vertical intent belongs to the page. Nothing is prevented here, ever —
+      // a hero that eats a downward swipe is a hero nobody can scroll past.
+      if (Math.abs(dx) < 44 || Math.abs(dx) <= Math.abs(dy)) return;
+
+      start.used = true;
+      onSwipe(dx < 0 ? (active + 1) % count : (active - 1 + count) % count);
+    },
+    [active, count, onSwipe]
+  );
+
+  const endGesture = useCallback(() => {
+    gesture.current = null;
+  }, []);
+
+  if (count === 0) return null;
 
   return (
     <div
@@ -204,11 +279,18 @@ export function HeroReel({
       id="hero-visual"
       role="tabpanel"
       aria-labelledby={labelledBy}
-      className="relative mt-4 aspect-[4/5] sm:aspect-[3/2] lg:aspect-auto lg:flex-1 lg:min-h-[470px] overflow-hidden"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endGesture}
+      onPointerCancel={endGesture}
+      // No overflow clipping: the object is meant to sit *in* space with room
+      // around it, and a clip is what made the last one read as a picture in a
+      // frame. touch-action stays on the page so vertical scrolling is native.
+      className="relative mt-4 h-[70vw] max-h-[460px] sm:h-[46vw] sm:max-h-[480px] lg:h-auto lg:max-h-none lg:flex-1 lg:min-h-[520px] touch-pan-y"
       style={
         prefersReducedMotion
           ? undefined
-          : { perspective: `${PERSPECTIVE}px`, perspectiveOrigin: "50% 50%" }
+          : { perspective: `${PERSPECTIVE}px`, perspectiveOrigin: "55% 45%" }
       }
     >
       <div
@@ -217,37 +299,30 @@ export function HeroReel({
         style={prefersReducedMotion ? undefined : { transformStyle: "preserve-3d" }}
       >
         <div
-          ref={drumRef}
+          ref={driftRef}
           className="absolute inset-0"
           style={prefersReducedMotion ? undefined : { transformStyle: "preserve-3d" }}
         >
           {services.map((service, index) => {
             const current = index === active;
 
-            /**
-             * Flat and stacked under reduced motion; on the surface of the
-             * drum otherwise. Before the stage has been measured the radius is
-             * zero, which collapses the drum to a single plane — correct as a
-             * first paint, and the measurement lands in the same frame.
-             */
-            const face: React.CSSProperties = prefersReducedMotion
-              ? {
-                  opacity: current ? 1 : 0,
-                  visibility: current ? "visible" : "hidden",
-                  transition: "opacity 450ms ease-out",
-                }
-              : {
-                  transform: `rotateX(${index * step}deg) translateZ(${radius}px)`,
-                  backfaceVisibility: "hidden",
-                };
-
             return (
               <div
                 key={service.id}
-                className="absolute inset-0 overflow-hidden bg-surface-card"
-                style={face}
-                // Only the face in front is part of the document for anyone
-                // reading it rather than looking at it; the rest are scenery.
+                ref={(node) => {
+                  planesRef.current[index] = node;
+                }}
+                data-hero-plane={index}
+                data-hero-active={current ? "true" : "false"}
+                // Sized off the stage's height so the fan has room on either
+                // side — the negative space is what makes it read as an object
+                // rather than as another full-bleed image.
+                className="absolute left-1/2 top-1/2 h-[80%] lg:h-[92%] aspect-[3/4] border border-border-custom bg-surface-card shadow-[0_40px_80px_-40px_rgba(0,0,0,0.85)]"
+                style={
+                  prefersReducedMotion
+                    ? undefined
+                    : { transformStyle: "preserve-3d", backfaceVisibility: "hidden" }
+                }
                 aria-hidden={current ? undefined : true}
               >
                 <Image
@@ -256,9 +331,19 @@ export function HeroReel({
                   fill
                   priority={index === 0}
                   quality={82}
-                  sizes="(max-width: 1024px) 100vw, 42vw"
+                  sizes="(max-width: 767px) 60vw, (max-width: 1024px) 40vw, 26vw"
                   className="object-cover"
                 />
+
+                {/* The number, on every plane. It is what makes the stack
+                    legible as four services rather than four pictures, and it
+                    is the same device the rest of the site indexes with. */}
+                <span
+                  aria-hidden="true"
+                  className="absolute left-0 bottom-0 px-3 py-2 font-mono text-[0.65rem] tracking-[0.18em] text-foreground"
+                >
+                  {service.number}
+                </span>
               </div>
             );
           })}
@@ -266,4 +351,22 @@ export function HeroReel({
       </div>
     </div>
   );
+}
+
+/* ── The compact query, read without setState in an effect ──────────────── */
+
+function subscribeCompact(onChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+  const query = window.matchMedia(COMPACT);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+function readCompact() {
+  return window.matchMedia(COMPACT).matches;
+}
+
+/** The server cannot know; the wide layout is the one worth rendering first. */
+function readCompactServer() {
+  return false;
 }

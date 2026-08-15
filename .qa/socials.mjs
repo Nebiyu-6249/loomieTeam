@@ -76,6 +76,12 @@ try {
     [URL_UNDER_TEST]
   );
 
+  check(
+    "no address was invented for the other two",
+    (await db.query("select count(*)::int as n from social_links where url is not null")).rows[0].n === 1,
+    "something else has a URL"
+  );
+
   // Ask the application to revalidate the way the admin does, by going through
   // it: a settings save is the same code path the social save uses.
   const context = await browser.newContext();
@@ -127,6 +133,46 @@ try {
     );
 
     await context.close();
+  }
+
+  /* ── 4b. The footer column, and the same set on every page ───────────── */
+  console.log("\n4b. The Elsewhere column, and parity across pages");
+  {
+    // Two enabled, so "the same links" is a real comparison rather than one.
+    await db.query(
+      "update social_links set enabled = true, url = $1 where platform = 'instagram'",
+      ["https://example.com/loomie-social-test-2"]
+    );
+    await fetch(`${base}/api/availability`);
+
+    const home = await text("/");
+    check("the footer gains an Elsewhere column once a link is on",
+      /Elsewhere/i.test(home), "no Elsewhere heading on /");
+
+    const enabled = (
+      await db.query("select label from social_links where enabled and url is not null order by display_order")
+    ).rows.map((row) => row.label);
+
+    const linksOn = async (path) => {
+      const html = await text(path);
+      return enabled.filter((label) => html.includes(label));
+    };
+
+    const about = await linksOn("/about");
+    const contact = await linksOn("/contact");
+
+    check("About shows every enabled link", about.length === enabled.length,
+      `${about.length}/${enabled.length}`);
+    check("Contact shows the same ones", contact.join("|") === about.join("|"),
+      `${contact.join(",")} vs ${about.join(",")}`);
+    check("and the footer carries them too",
+      enabled.every((label) => home.includes(label)), enabled.join(", "));
+
+    // Off again, and the column goes with them.
+    await db.query("update social_links set enabled = false, url = null");
+    await fetch(`${base}/api/availability`);
+    check("the column disappears when none is enabled",
+      !/Elsewhere/i.test(await text("/")), "Elsewhere still on /");
   }
 
   /* ── 5. Turning it off removes it everywhere ─────────────────────────── */

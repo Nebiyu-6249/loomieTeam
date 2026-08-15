@@ -209,6 +209,7 @@ export function HeroSection({ services }: { services: Service[] }) {
             active={active}
             engaged={engaged}
             onIdleAdvance={setActive}
+            onSwipe={choose}
             labelledBy={`hero-service-${active}`}
           />
         </figure>
