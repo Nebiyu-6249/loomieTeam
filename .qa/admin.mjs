@@ -170,7 +170,7 @@ try {
   console.log("\n3. Editing a service");
   {
     const before = await (await fetch(`${base}/services`)).text();
-    check("the site currently says “Identity”", before.includes("Identity"), "not found");
+    check("the site currently says “Logo Design”", before.includes("Logo Design"), "not found");
 
     await page.goto(`${base}/admin/services`, { waitUntil: "networkidle" });
     const rowCount = await page.locator("tbody tr").count();
@@ -180,7 +180,7 @@ try {
     await page.click('tbody tr:first-child a[href^="/admin/services/"]');
     await page.waitForSelector('input[name="title"]', { timeout: 10000 });
 
-    await page.fill('input[name="title"]', "Identity and marks");
+    await page.fill('input[name="title"]', "Logo Design and marks");
     await Promise.all([
       page.waitForURL(/saved=1/, { timeout: 15000 }),
       page.click('main form button[type="submit"]'),
@@ -192,18 +192,18 @@ try {
     const stored = await rest.query(
       "select title from services order by display_order limit 1"
     );
-    check("the row really changed", stored.rows[0].title === "Identity and marks", stored.rows[0].title);
+    check("the row really changed", stored.rows[0].title === "Logo Design and marks", stored.rows[0].title);
 
     // revalidatePath named /services, so the public page reflects it.
     const after = await (await fetch(`${base}/services`)).text();
     check(
       "the public page shows the new title",
-      after.includes("Identity and marks"),
+      after.includes("Logo Design and marks"),
       "public page still stale"
     );
 
     // Put it back.
-    await page.fill('input[name="title"]', "Identity");
+    await page.fill('input[name="title"]', "Logo Design");
     await Promise.all([
       page.waitForURL(/saved=1/, { timeout: 15000 }),
       page.click('main form button[type="submit"]'),
@@ -229,7 +229,7 @@ try {
     check("a malformed slug is refused", /hyphen|lower case/i.test(message ?? ""), message ?? "");
 
     const stored = await rest.query("select slug from services order by display_order limit 1");
-    check("and nothing was written", stored.rows[0].slug === "identity", stored.rows[0].slug);
+    check("and nothing was written", stored.rows[0].slug === "logo-design", stored.rows[0].slug);
   }
 
   /* ── 5. Reordering ───────────────────────────────────────────────────── */
@@ -349,6 +349,78 @@ try {
       (await editorPage.locator("tbody tr").count()) > 0,
       "no services listed for an editor"
     );
+
+    /**
+     * And the database refuses them directly, not just the interface.
+     *
+     * This is the check that matters: hiding a page is a courtesy, and an
+     * editor with an access token can call the REST API without ever opening
+     * the admin. The policies used is_admin(), which an editor satisfies, so
+     * until migration 0003 this returned every visitor's name, address and
+     * message.
+     */
+    const token = await editorPage.evaluate(() => {
+      // Not localStorage: this app's browser client is @supabase/ssr's, so the
+      // session lives in `sb-<ref>-auth-token` — base64-encoded, and split
+      // across numbered chunks once it outgrows one cookie.
+      const chunks = document.cookie
+        .split("; ")
+        .map((pair) => [pair.slice(0, pair.indexOf("=")), pair.slice(pair.indexOf("=") + 1)])
+        .filter(([name]) => /^sb-.*auth-token(\.\d+)?$/.test(name))
+        .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
+
+      if (chunks.length === 0) return null;
+
+      let raw = chunks.map(([, value]) => decodeURIComponent(value)).join("");
+      if (raw.startsWith("base64-")) {
+        const bytes = Uint8Array.from(atob(raw.slice(7)), (c) => c.charCodeAt(0));
+        raw = new TextDecoder().decode(bytes);
+      }
+
+      try {
+        const session = JSON.parse(raw);
+        return Array.isArray(session) ? session[0] : (session?.access_token ?? null);
+      } catch {
+        return null;
+      }
+    });
+
+    if (token) {
+      const read = async (table) => {
+        const response = await fetch(`${rest.url}/rest/v1/${table}?select=id`, {
+          headers: { Authorization: `Bearer ${token}`, apikey: "stub-publishable" },
+        });
+        return response.ok ? (await response.json()).length : -1;
+      };
+      const write = async (table, patch) => {
+        const response = await fetch(`${rest.url}/rest/v1/${table}?select=id`, {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            apikey: "stub-publishable",
+            "Content-Type": "application/json",
+            Prefer: "return=representation",
+          },
+          body: JSON.stringify(patch),
+        });
+        return response.ok ? (await response.json()).length : -1;
+      };
+
+      const bookings = await read("bookings");
+      check("an editor's own token reads no bookings", bookings === 0, String(bookings));
+      const enquiries = await read("enquiries");
+      check("and no enquiries", enquiries === 0, String(enquiries));
+      const services = await read("services");
+      check("while still reading services", services > 0, String(services));
+
+      const changed = await write("bookings", { status: "cancelled" });
+      check("and changes no booking rows", changed === 0, String(changed));
+      const touched = await write("enquiries", { status: "closed" });
+      check("nor any enquiry", touched === 0, String(touched));
+    } else {
+      check("an editor's access token could be read for the direct RLS check", false,
+        "no sb-*-auth-token cookie found");
+    }
 
     await editorContext.close();
   }
