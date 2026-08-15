@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { serverClient } from "@/lib/supabase/server";
 import { canAdminister, requireAdmin } from "@/lib/auth";
 import { findResource, type Resource } from "@/lib/admin/resources";
+import { revalidateEveryPublicPath } from "@/lib/admin/revalidate";
 
 /**
  * Create, update, reorder and delete, for every resource described in
@@ -90,7 +91,8 @@ async function record(
 }
 
 function refresh(resource: Resource) {
-  for (const path of resource.revalidates) revalidatePath(path);
+  if (resource.siteWide) revalidateEveryPublicPath();
+  else for (const path of resource.revalidates) revalidatePath(path);
   revalidatePath(`/admin/${resource.key}`);
 }
 
@@ -203,9 +205,10 @@ export async function deleteRow(key: string, id: string) {
 /**
  * Moves a row one place up or down.
  *
- * Two rows swap display_order rather than the whole list being renumbered: it
- * is two statements instead of N, and it cannot half-finish into an order
- * nobody chose.
+ * The swap is one statement inside public.swap_display_order, not two updates
+ * over REST. Two updates can leave both rows holding the same position if the
+ * second one fails, and the list then has an order nobody chose and no way to
+ * tell which of the two was meant to be first.
  */
 export async function reorderRow(key: string, id: string, direction: "up" | "down") {
   const resource = findResource(key);
@@ -236,14 +239,16 @@ export async function reorderRow(key: string, id: string, direction: "up" | "dow
   const neighbour = (neighbours ?? [])[0] as { id: string; display_order: number } | undefined;
   if (!neighbour) return;
 
-  await supabase
-    .from(table)
-    .update({ display_order: neighbour.display_order } as never)
-    .eq("id", here.id);
-  await supabase
-    .from(table)
-    .update({ display_order: here.display_order } as never)
-    .eq("id", neighbour.id);
+  const { error } = await supabase.rpc("swap_display_order", {
+    p_table: resource.table,
+    p_a: here.id,
+    p_b: neighbour.id,
+  });
+
+  if (error) {
+    console.error("[loomie] reorder refused", error.message);
+    return;
+  }
 
   refresh(resource);
 }

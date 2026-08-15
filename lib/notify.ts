@@ -71,6 +71,19 @@ async function send(payload: {
   }
 }
 
+/**
+ * Where booking and enquiry notifications are addressed.
+ *
+ * The `booking_email` setting was an admin field nothing read: delivery used
+ * BOOKING_TO_EMAIL and ignored it, so changing it in the admin changed
+ * nothing. The setting now wins and the variable is the fallback, which is the
+ * order that makes the field mean what it says — and the variable is still
+ * required, so a deployment that has never opened the admin still delivers.
+ */
+export function studioAddress(setting?: string | null) {
+  return (setting || "").trim() || process.env.BOOKING_TO_EMAIL || "";
+}
+
 /** True when the studio has enough configuration to send anything at all. */
 export function deliveryConfigured() {
   return Boolean(
@@ -80,9 +93,13 @@ export function deliveryConfigured() {
   );
 }
 
-export async function deliver(booking: Booking): Promise<DeliveryResult> {
+export async function deliver(
+  booking: Booking,
+  /** The `booking_email` setting, when there is one. */
+  addressedTo?: string | null
+): Promise<DeliveryResult> {
   const from = process.env.BOOKING_FROM_EMAIL!;
-  const studio = process.env.BOOKING_TO_EMAIL!;
+  const studio = studioAddress(addressedTo);
 
   const studioTime = format(booking.start, STUDIO_TIMEZONE);
   const visitorTime = format(booking.start, booking.timezone);
@@ -159,9 +176,12 @@ export interface EnquiryMessage {
  * Returns whether it actually sent. The route refuses rather than claiming an
  * enquiry was received by somebody who has not been told about it.
  */
-export async function notifyEnquiry(enquiry: EnquiryMessage): Promise<boolean> {
+export async function notifyEnquiry(
+  enquiry: EnquiryMessage,
+  addressedTo?: string | null
+): Promise<boolean> {
   const from = process.env.BOOKING_FROM_EMAIL;
-  const studio = process.env.BOOKING_TO_EMAIL;
+  const studio = studioAddress(addressedTo);
   if (!process.env.RESEND_API_KEY || !from || !studio) return false;
 
   try {

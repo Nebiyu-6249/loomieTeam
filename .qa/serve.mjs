@@ -5,7 +5,7 @@ import { startPostgrestStub } from "./postgrestStub.mjs";
 import { writeFileSync } from "node:fs";
 
 const rest = await startPostgrestStub(3394, process.env.SUPABASE_DB_URL);
-const port = process.env.PORT ?? "3210";
+const port = process.env.PORT ?? "3220";
 
 const child = spawn("npx", ["next", "start", "-p", port], {
   cwd: "/home/user/loomieTeam",

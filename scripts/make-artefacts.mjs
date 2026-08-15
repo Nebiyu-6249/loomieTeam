@@ -646,7 +646,7 @@ function campaign(w, h) {
 /**
  * 07 — Interface. A website, drawn as a website.
  *
- * Websites was being illustrated with the grid diagram, which is what a site is
+ * Website Design was being illustrated with the grid diagram, which is what a site is
  * built on rather than what it is. This is a page: navigation, an editorial
  * headline, a real photograph, a run of three, and the same page again at phone
  * width beside it. A visitor should not have to read the caption to know what

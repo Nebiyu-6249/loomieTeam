@@ -344,6 +344,30 @@ export type Database = {
       is_admin: { Args: Record<string, never>; Returns: boolean };
       can_administer: { Args: Record<string, never>; Returns: boolean };
       current_admin_role: { Args: Record<string, never>; Returns: AdminRole | null };
+
+      /**
+       * The compound writes, which exist so they can be one transaction each.
+       * All three are SECURITY INVOKER: they run as whoever called them, so
+       * row level security still decides what the statements inside may touch.
+       */
+      save_project: {
+        Args: {
+          p_id: string | null;
+          p_project: Record<string, unknown>;
+          p_disciplines: string[];
+          p_sections: { kind: string; body: string }[];
+          p_gallery: { media_id: string; alt: string }[];
+        };
+        Returns: string;
+      };
+      swap_display_order: {
+        Args: { p_table: string; p_a: string; p_b: string };
+        Returns: number;
+      };
+      save_settings: {
+        Args: { p_settings: Record<string, string>; p_actor: string | null };
+        Returns: number;
+      };
     };
     Enums: {
       admin_role: AdminRole;

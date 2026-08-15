@@ -73,10 +73,22 @@ insert into admin_profiles (auth_user_id, name, email, role)
 values ('<the auth user id>', 'Your Name', 'you@example.com', 'owner');
 ```
 
-Everybody after that is added from inside the admin.
+Everybody after that is added from inside the admin, which sets a temporary
+password. They can change it under **Your account**, or you can send them a
+reset link from **Administrators** — that needs an SMTP provider configured
+under Authentication → Emails, and the admin says so if it is missing rather
+than reporting an email that never went.
 
-**Storage.** The media library uploads to a bucket named `site`. Create it in
-Storage and make it public, or uploads fail with a message saying so.
+**7. Storage.** The media library uploads to a bucket named `site`. Create it
+and make it public, or uploads fail with a message saying so.
+
+> Public means public. Row level security governs the `media` **row**, not the
+> bytes: every uploaded object is readable by anyone who knows its URL, before
+> it is used anywhere, while it is unpublished, and after it is detached.
+> Deleting the media row deletes the object, and that is the only thing that
+> makes a file stop being downloadable. Nothing in this application makes a
+> public Storage object private, and the upload form says so at the point
+> somebody chooses a file.
 
 ---
 
@@ -140,14 +152,17 @@ happens against a real request.
 | `npm run make-artefacts` | Regenerate the drawn plates in `public/images/work` |
 | `npm run optimise-images` | Re-encode photography |
 
-The `db:*` scripts need `SUPABASE_DB_URL`. It is a setup-time credential:
-nothing at runtime uses it, and it does not belong in the deployed environment.
+The `db:*` scripts need `SUPABASE_DB_URL`. It is a **setup-time credential**:
+no runtime code reads it, it is not needed by the deployed application, and it
+should not be added to Vercel's environment variables. Keep it where you run
+migrations from.
 
 ---
 
 ## Tests
 
-**Row level security** — 45 checks, run against real Postgres:
+**Row level security and the hardening functions** — 71 checks, run against real
+Postgres:
 
 ```bash
 SUPABASE_DB_URL="postgres://…" npm run db:test
@@ -155,18 +170,22 @@ SUPABASE_DB_URL="postgres://…" npm run db:test
 
 Public read and write, signed-in non-administrators, editors, owners,
 deactivated accounts, and the constraints — including that two people cannot
-book the same slot and that cancelling frees it.
+book the same slot and that cancelling frees it. Editors are covered in both
+directions: they can edit content, and they cannot read or change a booking or
+an enquiry. The compound writes are proved atomic rather than asserted to be:
+a project save with one bad image reference leaves the summary, the sections
+and the gallery exactly as they were.
 
-**The application** — see `.qa/README.md`. Three suites drive a production
-build against a PostgREST-shaped stub over a real Postgres, so the route
-handlers, the stores, `supabase-js` and the real policies all run unmodified:
+**The application** — see `.qa/README.md`. The suites drive a production build
+against a PostgREST-shaped stub over a real Postgres, so the route handlers, the
+stores, `supabase-js` and the real policies all run unmodified:
 
 ```bash
 npm run build
 SUPABASE_DB_URL="postgres://…" node .qa/booking.mjs        # 33 checks
 SUPABASE_DB_URL="postgres://…" node .qa/booking-happy.mjs  # 38 checks
-SUPABASE_DB_URL="postgres://…" node .qa/enquiry.mjs        # 32 checks
-SUPABASE_DB_URL="postgres://…" node .qa/admin.mjs          # 50 checks, needs playwright
+SUPABASE_DB_URL="postgres://…" node .qa/enquiry.mjs        # 40 checks
+SUPABASE_DB_URL="postgres://…" node .qa/admin.mjs          # 55 checks, needs playwright
 ```
 
 ---

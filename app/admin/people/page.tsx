@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 export default async function People({
   searchParams,
 }: {
-  searchParams: Promise<{ added?: string; error?: string }>;
+  searchParams: Promise<{ added?: string; error?: string; reset?: string }>;
 }) {
   if (!isSupabaseConfigured()) return <SetupNotice />;
 
@@ -52,7 +52,14 @@ export default async function People({
 
       {query.added ? (
         <p role="status" className="mb-8 border border-border-custom px-4 py-3 text-sm text-foreground">
-          Added. Tell them the password you chose and ask them to change it.
+          Added. Give them the password directly and ask them to change it under
+          Your account — or send them a reset link and never know it at all.
+        </p>
+      ) : null}
+
+      {query.reset ? (
+        <p role="status" className="mb-8 border border-border-custom px-4 py-3 text-sm text-foreground">
+          Reset link sent, if that address has an account.
         </p>
       ) : null}
 

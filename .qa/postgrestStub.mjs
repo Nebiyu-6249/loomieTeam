@@ -117,6 +117,46 @@ async function readForeignKeys(client) {
 }
 
 /**
+ * The public functions reachable over /rest/v1/rpc, with each argument's
+ * declared type.
+ *
+ * The types are why this is read from the catalogue rather than assumed.
+ * supabase-js sends every argument as JSON, and node-pg turns a JavaScript
+ * array into a Postgres *array literal* — so `p_sections`, which is jsonb
+ * carrying an array, would arrive as `{"{\"kind\": ...}"}` and fail to parse as
+ * jsonb. Knowing the parameter is jsonb is what decides which values get
+ * stringified and which are passed through.
+ *
+ * Overloads collapse onto one entry. Nothing here is overloaded, and a stub
+ * that guessed wrong would fail loudly at the call rather than quietly.
+ */
+async function readFunctions(client) {
+  const { rows } = await client.query(`
+    select
+      p.proname as name,
+      p.proargnames as arg_names,
+      array(
+        select format_type(t, null)
+        from unnest(p.proargtypes::oid[]) with ordinality as u(t, ord)
+        order by u.ord
+      ) as arg_types
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.prokind = 'f'
+  `);
+
+  const map = new Map();
+  for (const row of rows) {
+    const types = new Map();
+    (row.arg_names ?? []).forEach((name, index) => {
+      if (row.arg_types[index]) types.set(name, row.arg_types[index]);
+    });
+    map.set(row.name, types);
+  }
+  return map;
+}
+
+/**
  * The auth half.
  *
  * Supabase Auth is a separate service from PostgREST, on the same origin under
@@ -234,6 +274,7 @@ export async function startPostgrestStub(port, connectionString, options = {}) {
   const pool = new pg.Pool({ connectionString, max: 12 });
   const setup = await pool.connect();
   const foreignKeys = await readForeignKeys(setup);
+  const functions = await readFunctions(setup);
   setup.release();
 
   const serviceKey = options.serviceKey ?? "stub-secret";
@@ -278,10 +319,14 @@ export async function startPostgrestStub(port, connectionString, options = {}) {
       return send(404, { message: "Not found" });
     }
 
-    // /rest/v1/<table>
-    const match = url.pathname.match(/^\/rest\/v1\/([a-z_]+)$/);
-    if (!match) return send(404, { message: "Not found" });
-    const table = match[1];
+    // /rest/v1/rpc/<function>, and /rest/v1/<table>. The rpc form has to be
+    // matched first: the table pattern does not match a path with a slash in
+    // it, so before this every .rpc() call answered 404 and the admin save it
+    // was standing in for simply never completed.
+    const rpc = url.pathname.match(/^\/rest\/v1\/rpc\/([a-z_]+)$/);
+    const match = rpc ? null : url.pathname.match(/^\/rest\/v1\/([a-z_]+)$/);
+    if (!rpc && !match) return send(404, { message: "Not found" });
+    const table = match?.[1] ?? null;
 
     /**
      * Which Postgres role this request runs as.
@@ -432,6 +477,51 @@ export async function startPostgrestStub(port, connectionString, options = {}) {
       await client.query("select set_config('request.jwt.claim.sub', $1, true)", [
         identity.uid ?? "",
       ]);
+
+      /**
+       * A function call, inside the same transaction and the same role as any
+       * other request.
+       *
+       * That is the whole point of running it here rather than shortcutting to
+       * the pool: save_project and save_settings are SECURITY INVOKER, so they
+       * see `authenticated` and the caller's auth.uid(), and row level security
+       * applies to what they do. An editor is refused by the policy, not by a
+       * branch in this file. And because `send` rolls back on an error, a
+       * half-finished project write unwinds here exactly as it would in
+       * production.
+       */
+      if (rpc) {
+        if (request.method !== "POST") return send(405, { message: "Method not allowed" });
+
+        const name = rpc[1];
+        const signature = functions.get(name);
+        const body = (await readBody()) ?? {};
+        const names = Object.keys(body);
+
+        if (!signature || names.some((key) => !signature.has(key))) {
+          return send(404, {
+            code: "PGRST202",
+            message: `Could not find the function public.${name}(${names.join(", ")})`,
+          });
+        }
+
+        const args = [];
+        const parameters = names.map((key, index) => {
+          const type = signature.get(key);
+          const value = body[key];
+          args.push(/^json/.test(type) && value !== null ? JSON.stringify(value) : value);
+          // Named notation, so argument order in the request cannot matter, and
+          // an explicit cast, so nothing rests on Postgres inferring a type for
+          // a parameter node-pg sent as text.
+          return `${key} => $${index + 1}::${type}`;
+        });
+
+        const { rows } = await client.query(
+          `select public.${name}(${parameters.join(", ")}) as value`,
+          args
+        );
+        return send(200, rows[0]?.value ?? null);
+      }
 
       if (request.method === "GET" || request.method === "HEAD") {
         if (wantsCount) {

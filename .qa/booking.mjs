@@ -108,7 +108,7 @@ const valid = (start, over = {}) => ({
   start,
   name: "Ada Lovelace",
   email: "ada@example.com",
-  service: "identity",
+  service: "logo-design",
   note: "Rebranding a small practice.",
   timezone: "Europe/London",
   company: "",

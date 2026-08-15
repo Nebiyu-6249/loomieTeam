@@ -103,7 +103,7 @@ const valid = (over = {}) => ({
   name: "Ada Lovelace",
   email: "ada@example.com",
   company: "Analytical Engines",
-  service: "identity",
+  service: "logo-design",
   message: "We are rebranding a small practice and need a mark that survives print.",
   website: "",
   openedAt: Date.now() - 8000,
@@ -129,9 +129,25 @@ await withServer(3316, DURABLE, async (base) => {
 
   check("200", response.status === 200, `status=${response.status}`);
   check("ok", body.ok === true, JSON.stringify(body).slice(0, 140));
-  check("reports persistence honestly", body.persisted === true, String(body.persisted));
+  check("reports that this message was stored", body.persisted === true, String(body.persisted));
+  check("and that the studio was notified", body.notified === true, String(body.notified));
   check("one email was sent", sent.length === 1, `sent=${sent.length}`);
-  check("to the studio", sent[0]?.to?.[0] === "studio@example.com", JSON.stringify(sent[0]?.to));
+  /**
+   * Addressed by the `booking_email` setting, not by BOOKING_TO_EMAIL.
+   *
+   * That field used to be an admin control nothing read. The setting now wins
+   * and the environment variable is the fallback, which is what makes editing
+   * it in the admin mean anything.
+   */
+  const configured = (
+    await db.query("select value from site_settings where key = 'booking_email'")
+  ).rows[0]?.value;
+
+  check(
+    "addressed by the booking_email setting",
+    sent[0]?.to?.[0] === configured,
+    `${JSON.stringify(sent[0]?.to)} vs setting ${configured}`
+  );
   check(
     "replying goes to the enquirer",
     sent[0]?.reply_to === "ada@example.com",
@@ -154,10 +170,33 @@ await withServer(3316, DURABLE, async (base) => {
   check("the row exists", Boolean(row), "no enquiry row");
   check("with the name", row?.name === "Ada Lovelace", String(row?.name));
   check("with the company", row?.company === "Analytical Engines", String(row?.company));
-  check("joined to the chosen service", row?.service_slug === "identity", String(row?.service_slug));
+  check("joined to the chosen service", row?.service_slug === "logo-design", String(row?.service_slug));
   check("starts as new", row?.status === "new", String(row?.status));
   check("the whole message is stored", row?.message.includes("survives print"), "message truncated");
 });
+
+/* ── 1b. With no setting, the environment variable is used ───────────────── */
+
+console.log("\n1b. Falling back to BOOKING_TO_EMAIL");
+{
+  const previous = (
+    await db.query("select value from site_settings where key = 'booking_email'")
+  ).rows[0]?.value;
+
+  await db.query("update site_settings set value = null where key = 'booking_email'");
+
+  await withServer(3323, DURABLE, async (base) => {
+    const before = sent.length;
+    await post(base, valid({ email: "fallback@example.com" }));
+    check(
+      "an unset setting falls back to the environment variable",
+      sent[before]?.to?.[0] === "studio@example.com",
+      JSON.stringify(sent[before]?.to)
+    );
+  });
+
+  await db.query("update site_settings set value = $1 where key = 'booking_email'", [previous]);
+}
 
 /* ── 2. Validation ───────────────────────────────────────────────────────── */
 
@@ -197,22 +236,65 @@ await withServer(3319, DURABLE, async (base) => {
   check("nothing was written", after === before, `${before} -> ${after}`);
 });
 
-/* ── 4. The studio cannot be reached ─────────────────────────────────────── */
+/* ── 4. The studio's email fails, but the message is kept ────────────────── */
+//
+// The order used to be notify-then-store with the insert in a try/catch, and
+// the response said persisted:true because that field described the store's
+// durability rather than this message. A visitor could be told their enquiry
+// was recorded when it had not been.
+//
+// Now the row goes in first. A send failure is not a failed enquiry — the
+// message is somewhere an administrator will see it — so the visitor is told
+// it arrived and told that the notification did not.
 
-console.log("\n4. The studio cannot be reached");
+console.log("\n4. The studio's email fails");
 await withServer(3320, DURABLE, async (base) => {
   failSend = true;
   const before = (await db.query("select count(*)::int as n from enquiries")).rows[0].n;
 
   const response = await post(base, valid({ email: "unreachable@example.com" }));
   const body = await response.json();
-  check("502", response.status === 502, `got ${response.status}`);
-  check("ok is false", body.ok === false, JSON.stringify(body).slice(0, 120));
-  check("points the visitor at email", /email/i.test(body.error ?? ""), body.error);
+
+  check("still a success, because the message was kept", response.status === 200,
+    `got ${response.status}`);
+  check("ok is true", body.ok === true, JSON.stringify(body).slice(0, 120));
+  check("persisted is true, and means this message", body.persisted === true,
+    String(body.persisted));
+  check("notified is false, and says so", body.notified === false, String(body.notified));
 
   const after = (await db.query("select count(*)::int as n from enquiries")).rows[0].n;
-  check("no row for a message nobody received", after === before, `${before} -> ${after}`);
+  check("the row is there for somebody to answer", after === before + 1, `${before} -> ${after}`);
   failSend = false;
+});
+
+/* ── 4b. The database refuses, so nothing is claimed ─────────────────────── */
+//
+// The other half of the same rule: if the row cannot be written, the visitor
+// must not be told their message was recorded.
+
+console.log("\n4b. The message cannot be stored");
+await withServer(3322, DURABLE, async (base) => {
+  const before = (await db.query("select count(*)::int as n from enquiries")).rows[0].n;
+
+  // A message longer than the column will take is refused by the database
+  // rather than by validation, which is exactly the failure being tested.
+  await db.query("alter table enquiries add constraint enquiries_qa_block check (email <> 'blocked@example.com')");
+
+  try {
+    const response = await post(base, valid({ email: "blocked@example.com" }));
+    const body = await response.json();
+
+    check("503 rather than a false success", response.status === 503, `got ${response.status}`);
+    check("ok is false", body.ok === false, JSON.stringify(body).slice(0, 140));
+    check("and it does not claim to have persisted anything",
+      body.persisted !== true, JSON.stringify(body).slice(0, 140));
+    check("points the visitor at email", /email/i.test(body.error ?? ""), body.error);
+
+    const after = (await db.query("select count(*)::int as n from enquiries")).rows[0].n;
+    check("nothing was written", after === before, `${before} -> ${after}`);
+  } finally {
+    await db.query("alter table enquiries drop constraint enquiries_qa_block");
+  }
 });
 
 /* ── 5. Production with no durable store ─────────────────────────────────── */

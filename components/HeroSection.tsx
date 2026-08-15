@@ -1,15 +1,13 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import React, { useCallback, useRef, useState } from "react";
 import { ArrowDown } from "lucide-react";
-import { gsap } from "gsap";
 import { BlurText } from "./BlurText";
 import { whenLoaderFinished } from "./loaderSignal";
 import { useLenis } from "./LenisScrollProvider";
-import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 import type { Service } from "@/lib/content-types";
 import { useMagnetic } from "./useMagnetic";
+import { HeroReel } from "./HeroReel";
 
 /**
  * The hero, as an editorial spread rather than a landing page.
@@ -18,12 +16,16 @@ import { useMagnetic } from "./useMagnetic";
  * on the right, one action, and the scope underneath. What changed is that the
  * two halves are now connected.
  *
- * The service index used to be a list of four words next to a picture of a
- * logo, and the two had nothing to do with each other. It is now the control
- * and the picture is its state: point at Marketing and the sheet becomes the
- * campaign, point at Websites and it becomes a built page. That is the studio's
- * argument demonstrated rather than described — a system that answers when you
- * ask it something.
+ * The service index is the control and the visual is its state: point at
+ * Marketing and the object turns to the campaign, point at Website Design and
+ * it turns to a built page. That is the studio's argument demonstrated rather
+ * than described — a system that answers when you ask it something.
+ *
+ * The four artefacts are four faces of one turning object rather than four
+ * pictures in the same rectangle, because the second reads as a slideshow with
+ * a remote control. Seeing the next one arrive and the last one leave is what
+ * makes them feel like parts of one practice. HeroReel owns that; this file
+ * owns the layout, the index and which service is current.
  *
  * Built as a tablist, which is what this is: four controls selecting one panel.
  * That buys arrow-key navigation and a single tab stop for the whole index
@@ -31,19 +33,29 @@ import { useMagnetic } from "./useMagnetic";
  * controls change rather than as decoration.
  */
 
-/** Long enough to read as a page turning, short enough not to be waited on. */
-const SWAP = 0.42;
-
 export function HeroSection({ services }: { services: Service[] }) {
   const lenis = useLenis();
-  const prefersReducedMotion = usePrefersReducedMotion();
   const workRef = useMagnetic<HTMLAnchorElement>();
 
   const [active, setActive] = useState(0);
   const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
-  const platesRef = useRef<(HTMLDivElement | null)[]>([]);
-  const frameRef = useRef<HTMLDivElement>(null);
-  const previous = useRef(0);
+
+  /**
+   * Whether the visitor has done anything yet.
+   *
+   * The reel advances slowly on its own until this is true, so somebody who
+   * has not noticed the index is interactive still sees that it moves. The
+   * first hover, focus, click or key press ends that permanently — an object
+   * that keeps turning after you have taken hold of it is a demo, not a
+   * control.
+   */
+  const [engaged, setEngaged] = useState(false);
+
+  /** Every route into the index goes through here, so nothing can miss it. */
+  const choose = useCallback((index: number) => {
+    setEngaged(true);
+    setActive(index);
+  }, []);
 
   /**
    * Smooth-scrolls when Lenis is running and otherwise does nothing, which
@@ -56,69 +68,6 @@ export function HeroSection({ services }: { services: Service[] }) {
     event.preventDefault();
     lenis.current.scrollTo(target, { offset: -24 });
   };
-
-  /**
-   * The swap: the outgoing sheet lifts and goes, the incoming one arrives from
-   * just below. Six pixels, because the movement is there to give the change a
-   * direction, not to be noticed on its own.
-   */
-  useEffect(() => {
-    const from = previous.current;
-    previous.current = active;
-    if (from === active) return;
-
-    const outgoing = platesRef.current[from];
-    const incoming = platesRef.current[active];
-    if (!incoming) return;
-
-    if (prefersReducedMotion) {
-      if (outgoing) gsap.set(outgoing, { autoAlpha: 0, y: 0 });
-      gsap.set(incoming, { autoAlpha: 1, y: 0 });
-      return;
-    }
-
-    if (outgoing) {
-      gsap.to(outgoing, { autoAlpha: 0, y: -6, duration: SWAP, ease: "power3.out" });
-    }
-    gsap.fromTo(
-      incoming,
-      { autoAlpha: 0, y: 6 },
-      { autoAlpha: 1, y: 0, duration: SWAP, ease: "power3.out" }
-    );
-  }, [active, prefersReducedMotion]);
-
-  /**
-   * Optical depth, not a tilt.
-   *
-   * Three pixels of travel and a third of a degree: enough that the sheet reads
-   * as a physical thing catching the light, not enough to register as an
-   * effect. Off entirely for reduced motion and for anything without a real
-   * pointer, where there is no hover to respond to and the handler would only
-   * fire on touch.
-   */
-  useEffect(() => {
-    const frame = frameRef.current;
-    if (!frame || prefersReducedMotion) return;
-    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
-
-    const moveX = gsap.quickTo(frame, "x", { duration: 0.8, ease: "power3.out" });
-    const moveY = gsap.quickTo(frame, "y", { duration: 0.8, ease: "power3.out" });
-    const tilt = gsap.quickTo(frame, "rotation", { duration: 0.9, ease: "power3.out" });
-
-    const onMove = (event: PointerEvent) => {
-      const x = event.clientX / window.innerWidth - 0.5;
-      const y = event.clientY / window.innerHeight - 0.5;
-      moveX(x * 6);
-      moveY(y * 4);
-      tilt(x * 0.34);
-    };
-
-    window.addEventListener("pointermove", onMove, { passive: true });
-    return () => {
-      window.removeEventListener("pointermove", onMove);
-      gsap.to(frame, { x: 0, y: 0, rotation: 0, duration: 0.4 });
-    };
-  }, [prefersReducedMotion]);
 
   /** Roving focus, so the index is one tab stop and the arrows move inside it. */
   const onTabKey = useCallback(
@@ -133,10 +82,10 @@ export function HeroSection({ services }: { services: Service[] }) {
 
     if (next === null) return;
     event.preventDefault();
-    setActive(next);
+    choose(next);
     tabsRef.current[next]?.focus();
     },
-    [services.length]
+    [services.length, choose]
   );
 
   const current = services[active];
@@ -198,9 +147,9 @@ export function HeroSection({ services }: { services: Service[] }) {
                   aria-selected={selected}
                   aria-controls="hero-visual"
                   tabIndex={selected ? 0 : -1}
-                  onMouseEnter={() => setActive(index)}
-                  onFocus={() => setActive(index)}
-                  onClick={() => setActive(index)}
+                  onMouseEnter={() => choose(index)}
+                  onFocus={() => choose(index)}
+                  onClick={() => choose(index)}
                   onKeyDown={(event) => onTabKey(event, index)}
                   className="group relative flex items-baseline gap-3 border-t border-border-custom py-3 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
                 >
@@ -255,38 +204,13 @@ export function HeroSection({ services }: { services: Service[] }) {
             </figcaption>
           </div>
 
-          <div
-            ref={frameRef}
-            id="hero-visual"
-            role="tabpanel"
-            aria-labelledby={`hero-service-${active}`}
-            className="relative mt-4 aspect-[4/5] sm:aspect-[3/2] lg:aspect-auto lg:flex-1 lg:min-h-[470px] will-change-transform"
-          >
-            {services.map((service, index) => (
-              <div
-                key={service.id}
-                ref={(node) => {
-                  platesRef.current[index] = node;
-                }}
-                className="absolute inset-0"
-                style={
-                  index === active
-                    ? undefined
-                    : { opacity: 0, visibility: "hidden" }
-                }
-              >
-                <Image
-                  src={service.hero.src}
-                  alt={index === active ? service.hero.alt : ""}
-                  fill
-                  priority={index === 0}
-                  quality={82}
-                  sizes="(max-width: 1024px) 100vw, 42vw"
-                  className="object-cover"
-                />
-              </div>
-            ))}
-          </div>
+          <HeroReel
+            services={services}
+            active={active}
+            engaged={engaged}
+            onIdleAdvance={setActive}
+            labelledBy={`hero-service-${active}`}
+          />
         </figure>
       </div>
 

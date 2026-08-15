@@ -67,6 +67,11 @@ export interface Resource {
   publishable?: boolean;
   /** Public paths to revalidate after a write. */
   revalidates: string[];
+  /**
+   * True when this resource appears on every page rather than on the pages it
+   * names. Social links are in the footer, and the footer is everywhere.
+   */
+  siteWide?: boolean;
   /** Built from `fields`; see `schemaFor`. */
   schema: z.ZodTypeAny;
 }
@@ -314,7 +319,10 @@ export const RESOURCES: Resource[] = [
     creatable: false,
     deletable: false,
     orderable: true,
-    revalidates: ["/", "/about", "/contact"],
+    // The footer is on every page, so listing three of them was a bug that
+    // looked like a choice: /work and /services kept the old links.
+    revalidates: [],
+    siteWide: true,
     fields: [
       { name: "label", label: "Label", kind: "text", max: 60, required: true, column: true, help: "What the link says. “LinkedIn”, or the handle." },
       { name: "url", label: "Address", kind: "url", help: "The full profile address. Required before the link can be enabled." },

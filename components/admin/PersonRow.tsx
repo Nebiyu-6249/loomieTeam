@@ -2,6 +2,7 @@
 
 import React from "react";
 import { setActive } from "@/app/admin/people/actions";
+import { sendReset } from "@/app/admin/account/actions";
 import type { AdminRole } from "@/lib/supabase/types";
 
 /**
@@ -41,6 +42,16 @@ export function PersonRow({
         >
           {person.is_active ? "Active" : "Deactivated"}
         </span>
+
+        {/* So nobody is stuck on the password whoever invited them chose. */}
+        <form action={async () => { await sendReset(person.email); }}>
+          <button
+            type="submit"
+            className="font-mono text-[0.65rem] uppercase tracking-[0.16em] text-foreground-secondary transition-colors duration-200 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+          >
+            Send reset link
+          </button>
+        </form>
 
         {isSelf ? null : (
           <form action={async () => { await setActive(person.id, !person.is_active); }}>

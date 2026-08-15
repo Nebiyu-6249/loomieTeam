@@ -8,9 +8,14 @@ import type { FormState } from "@/app/admin/crud";
  * Adding somebody.
  *
  * A password is set here rather than an email invitation being sent, because
- * this application has one mail sender and it is the booking notifier — wiring
- * a second flow through it to send a link would be a lot of machinery for a
- * team of seven. Say the password out loud once and ask them to change it.
+ * creating the account must work whether or not Supabase has an SMTP provider
+ * configured — and on a fresh project it does not.
+ *
+ * It is a starting point, not a permanent arrangement. Whoever adds somebody
+ * knows this password, so the row on this page carries a "Send reset link"
+ * button and every administrator can change their own under Your account. The
+ * previous version had neither, which meant an inviter knew a colleague's
+ * password for as long as the account existed.
  */
 export function InviteForm({ canAddOwner }: { canAddOwner: boolean }) {
   const [state, action, pending] = useActionState<FormState, FormData>(invite, {});
@@ -64,8 +69,9 @@ export function InviteForm({ canAddOwner }: { canAddOwner: boolean }) {
             className={input}
           />
           <p className="mt-2 text-sm text-foreground-secondary">
-            At least 12 characters. Give it to them directly and ask them to
-            change it.
+            At least 12 characters. You will know it, so give it to them
+            directly and send a reset link, or ask them to change it under Your
+            account.
           </p>
         </div>
       </div>
