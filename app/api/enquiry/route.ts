@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getEnquiryStore, storageAcceptsEnquiries } from "@/lib/enquiries";
 import { RATE_LIMIT, callerKey, getRateLimiter } from "@/lib/rateLimit";
 import { notifyEnquiry } from "@/lib/notify";
-import { getContactEmail, getServices } from "@/lib/content";
+import { getBookingEmail, getContactEmail, getServices } from "@/lib/content";
 
 /**
  * Accepts a written enquiry, or explains why it did not.
@@ -10,9 +10,20 @@ import { getContactEmail, getServices } from "@/lib/content";
  * Same posture as the booking route, and for the same reason: it refuses when
  * there is nowhere durable to put the message, it refuses when the studio
  * cannot actually be reached, and it never reports success for something that
- * did not happen. The difference is that an enquiry has no slot to claim, so
- * there is nothing to hand back — it is written, then sent, and if the send
- * fails the row goes with it.
+ * did not happen.
+ *
+ * ── Written first, then sent ─────────────────────────────────────────────
+ * The order used to be the other way round, with the insert in a try/catch
+ * that logged and carried on — and the response then said `persisted: true`
+ * because that field reported whether the *store* was durable, not whether
+ * this message had actually been stored. A visitor could be told their enquiry
+ * was safely recorded when the insert had failed and only a log line survived.
+ *
+ * So the row goes in first and a failure there is a refusal. Only once the
+ * message is somewhere durable is it sent, and if the send then fails the row
+ * is kept and reported as unsent: the studio has a record it can act on, which
+ * is the outcome worth preserving. `persisted` and `notified` now describe
+ * this message rather than the system's capabilities.
  */
 
 export const dynamic = "force-dynamic";
@@ -118,29 +129,23 @@ export async function POST(request: Request) {
   const chosen = service ? (await getServices()).find((s) => s.id === service) : undefined;
   if (service && !chosen) return fail(422, "Unknown service.", "service");
 
-  const sent = await notifyEnquiry({
-    name,
-    email,
-    company: company || undefined,
-    serviceTitle: chosen?.title,
-    message,
-  });
-
-  if (!sent) {
-    return NextResponse.json(
-      { ok: false, error: fallback("We could not reach the studio just now.") },
-      { status: 502 }
-    );
-  }
-
-  // Stored after sending. The studio has the message either way; the row is
-  // what makes it trackable, and losing the row is worse than losing neither
-  // but better than telling somebody their message arrived when it did not.
   try {
     await store.create({ name, email, company: company || undefined, service, message });
   } catch (error) {
-    console.error("[loomie] enquiry stored failed after sending", error);
+    console.error("[loomie] enquiry could not be stored", error);
+    return NextResponse.json(
+      { ok: false, error: fallback("We could not record your message just now.") },
+      { status: 503 }
+    );
   }
 
-  return NextResponse.json({ ok: true, persisted: store.durable });
+  const notified = await notifyEnquiry(
+    { name, email, company: company || undefined, serviceTitle: chosen?.title, message },
+    await getBookingEmail()
+  );
+
+  // The message is stored either way, so this is not a failure — it is a
+  // difference in how quickly somebody will see it, and the visitor is told
+  // which of the two happened.
+  return NextResponse.json({ ok: true, persisted: true, notified });
 }

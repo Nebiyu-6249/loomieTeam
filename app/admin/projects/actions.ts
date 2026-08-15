@@ -15,13 +15,16 @@ import type { FormState } from "@/app/admin/crud";
  * a case study. The generic resource machinery covers the row; this covers the
  * rest.
  *
- * ── Why the children are replaced rather than diffed ─────────────────────
- * Disciplines and sections are small, wholly derived from what the form
- * submitted, and have no identity worth preserving: a discipline is a string,
- * a section is one of exactly three kinds. Deleting and re-inserting them is
- * simpler than computing a diff and cannot leave a half-applied state. The
- * gallery is different — its rows point at media and carry per-image alt text
- * — so it is matched by media id and only genuinely new entries are inserted.
+ * ── One database call, because that is what atomic means ─────────────────
+ * The row, the disciplines, the three sections and the gallery all move
+ * together through public.save_project. Doing it as six REST calls and
+ * checking each error was never atomic: any of them could be the last one to
+ * succeed, and the project would be left in a state nobody chose.
+ *
+ * Inside that function, disciplines and sections are replaced — they are
+ * wholly derived from the form and have no identity worth preserving — while
+ * the gallery is matched by media id, because its rows reference media under
+ * ON DELETE RESTRICT.
  */
 
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -112,73 +115,6 @@ function refresh(slug?: string) {
   revalidatePath("/admin/projects");
 }
 
-/** Replaces a project's children to match what the form submitted. */
-async function writeChildren(
-  supabase: Awaited<ReturnType<typeof serverClient>>,
-  projectId: string,
-  parsedSections: z.infer<typeof Sections>,
-  disciplines: string[],
-  gallery: { mediaId: string; alt: string }[]
-) {
-  await supabase.from("project_disciplines").delete().eq("project_id", projectId);
-  if (disciplines.length > 0) {
-    await supabase.from("project_disciplines").insert(
-      disciplines.map((discipline, order) => ({
-        project_id: projectId,
-        discipline,
-        display_order: order,
-      }))
-    );
-  }
-
-  await supabase.from("project_sections").delete().eq("project_id", projectId);
-  await supabase.from("project_sections").insert(
-    (["scenario", "direction", "demonstration"] as const).map((kind, order) => ({
-      project_id: projectId,
-      kind,
-      body: parsedSections[kind],
-      display_order: order,
-    }))
-  );
-
-  // The gallery is matched rather than replaced: project_media references
-  // media with ON DELETE RESTRICT, and deleting every row on every save would
-  // churn foreign keys for no reason.
-  const { data: existing } = await supabase
-    .from("project_media")
-    .select("id, media_id")
-    .eq("project_id", projectId);
-
-  const current = (existing ?? []) as { id: string; media_id: string }[];
-  const wanted = new Set(gallery.map((entry) => entry.mediaId));
-
-  const removed = current.filter((row) => !wanted.has(row.media_id));
-  if (removed.length > 0) {
-    await supabase
-      .from("project_media")
-      .delete()
-      .in("id", removed.map((row) => row.id));
-  }
-
-  for (const [order, entry] of gallery.entries()) {
-    const already = current.find((row) => row.media_id === entry.mediaId);
-    if (already) {
-      await supabase
-        .from("project_media")
-        .update({ alt: entry.alt, display_order: order })
-        .eq("id", already.id);
-    } else {
-      await supabase.from("project_media").insert({
-        project_id: projectId,
-        media_id: entry.mediaId,
-        role: "gallery",
-        alt: entry.alt,
-        display_order: order,
-      });
-    }
-  }
-}
-
 export async function saveProject(
   id: string | null,
   _: FormState,
@@ -200,50 +136,44 @@ export async function saveProject(
 
   const supabase = await serverClient();
 
-  let projectId = id;
-  if (id) {
-    const { data, error } = await supabase
-      .from("projects")
-      .update(parsedRow.data)
-      .eq("id", id)
-      .select("id");
+  /**
+   * One call, one transaction.
+   *
+   * This used to be a row update followed by six child statements over
+   * separate REST calls, with each error checked — which is not atomicity, it
+   * is a sequence that can stop in the middle. A save that failed on the
+   * gallery left the project carrying new prose, no disciplines and a
+   * half-replaced set of sections, and nothing about the result said so.
+   *
+   * save_project is SECURITY INVOKER, so the administrator's own policies
+   * still decide what the statements inside may touch. It raises rather than
+   * returning zero rows when row level security filters the update away, which
+   * is how "nothing was saved" reaches the interface as an error instead of as
+   * a confirmation.
+   */
+  const { data, error } = await supabase.rpc("save_project", {
+    p_id: id,
+    p_project: parsedRow.data,
+    p_disciplines: raw.disciplines,
+    p_sections: (["scenario", "direction", "demonstration"] as const).map((kind) => ({
+      kind,
+      body: parsedSections.data[kind],
+    })),
+    p_gallery: raw.gallery.map((entry) => ({ media_id: entry.mediaId, alt: entry.alt })),
+  });
 
-    if (error) {
-      return {
-        error:
-          error.code === "23505"
-            ? "Another project already uses that slug."
-            : error.message,
-      };
-    }
-    if (!data || data.length === 0) {
+  if (error) {
+    if (error.code === "23505") return { error: "Another project already uses that slug." };
+    if (error.code === "42501") {
       return { error: "Nothing was saved — your account may not be allowed to change this." };
     }
-  } else {
-    const { data, error } = await supabase
-      .from("projects")
-      .insert(parsedRow.data)
-      .select("id")
-      .single();
-
-    if (error) {
-      return {
-        error:
-          error.code === "23505"
-            ? "Another project already uses that slug."
-            : error.message,
-      };
+    if (error.code === "23503") {
+      return { error: "One of the chosen images no longer exists. Reload and try again." };
     }
-    projectId = (data as { id: string }).id;
+    return { error: error.message };
   }
 
-  await writeChildren(
-    supabase,
-    projectId as string,
-    parsedSections.data,
-    raw.disciplines,
-    raw.gallery
-  );
+  const projectId = data as unknown as string;
 
   refresh(parsedRow.data.slug);
   redirect(`/admin/projects/${projectId}?saved=1`);

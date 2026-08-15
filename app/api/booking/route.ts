@@ -3,7 +3,7 @@ import { CALL_MINUTES, STUDIO_TIMEZONE, isOfferedSlot } from "@/lib/availability
 import { bookingCode, getBookingStore, storageAcceptsBookings } from "@/lib/bookingStore";
 import { RATE_LIMIT, callerKey, getRateLimiter } from "@/lib/rateLimit";
 import { deliver, deliveryConfigured } from "@/lib/notify";
-import { getContactEmail, getServices } from "@/lib/content";
+import { getBookingEmail, getContactEmail, getServices } from "@/lib/content";
 
 /**
  * Accepts a booking, or explains why it did not.
@@ -220,7 +220,9 @@ export async function POST(request: Request) {
     return fail(409, "That time has just been taken.", "start");
   }
 
-  const delivery = await deliver(booking);
+  // Addressed by the admin setting when there is one, by the environment
+  // variable when there is not.
+  const delivery = await deliver(booking, await getBookingEmail());
 
   // Recorded before the response is written, so a duplicate submission reads
   // the same answer this one is about to give.

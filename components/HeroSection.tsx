@@ -21,7 +21,7 @@ import { useMagnetic } from "./useMagnetic";
  * The service index used to be a list of four words next to a picture of a
  * logo, and the two had nothing to do with each other. It is now the control
  * and the picture is its state: point at Marketing and the sheet becomes the
- * campaign, point at Websites and it becomes a built page. That is the studio's
+ * campaign, point at Website Design and it becomes a built page. That is the studio's
  * argument demonstrated rather than described — a system that answers when you
  * ask it something.
  *

@@ -29,7 +29,14 @@ import pg from "pg";
 
 const MIGRATIONS = "supabase/migrations";
 const LOCAL_SHIM = "supabase/local-shim.sql";
-const TESTS = "supabase/tests/rls.sql";
+/**
+ * Every suite, in name order.
+ *
+ * Numbered, because order matters: 00_rls.sql creates the reporting table and
+ * the pg_temp helpers, and every suite after it adds rows to that same table.
+ * They run in one session and print as one report.
+ */
+const TESTS_DIR = "supabase/tests";
 
 const url = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
 if (!url) {
@@ -280,17 +287,22 @@ async function seed() {
   }
 }
 
-async function test() {
-  const sql = await readFile(TESTS, "utf8");
-  // psql meta-commands are for the interactive report; strip them here and
-  // read the results table directly.
-  const runnable = sql
+/** psql meta-commands are for the interactive report; strip them here. */
+function runnable(sql) {
+  return sql
     .split("\n")
     .filter((line) => !line.trimStart().startsWith("\\"))
     .join("\n")
     .split("select\n  case when passed")[0];
+}
 
-  await client.query(runnable);
+async function test() {
+  const files = (await readdir(TESTS_DIR)).filter((f) => f.endsWith(".sql")).sort();
+
+  for (const file of files) {
+    const sql = await readFile(path.join(TESTS_DIR, file), "utf8");
+    await client.query(runnable(sql));
+  }
   const { rows } = await client.query(
     "select area, description, passed, detail from results order by ctid"
   );

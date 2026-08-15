@@ -126,7 +126,7 @@ delete from media where bucket = 'projects';
 delete from admin_profiles
   where email in ('owner@example.com', 'editor@example.com', 'dormant@example.com',
                   'intruder@example.com', 'promoted@example.com', 'new@example.com');
-delete from services where slug = 'identity';
+delete from services where slug = 'rls-fixture-service';
 delete from team_members where slug in ('published-person', 'hidden-person');
 delete from social_links;
 delete from site_settings where key in ('contact_email', 'favourite_colour');
@@ -163,8 +163,10 @@ begin
   insert into project_sections (project_id, kind, body)
     select id, 'scenario', 'Private section.' from projects where slug = 'draft-study';
 
+  -- Deliberately not one of the real slugs: migration 0003 renames services by
+  -- their old slug, and a fixture called 'identity' would be caught by it.
   insert into services (slug, number, title, short_description, published)
-    values ('identity', '01', 'Identity', 'Marks and systems.', true);
+    values ('rls-fixture-service', '01', 'Fixture Service', 'Marks and systems.', true);
 
   insert into team_members (slug, name, role, published)
     values ('published-person', 'Published Person', 'Role', true);
@@ -291,11 +293,28 @@ begin
     not pg_temp.denied('authenticated', editor_uid,
       'update team_members set role = ''Edited'' where slug = ''hidden-person'''));
 
-  perform pg_temp.check('editor', 'can read bookings',
-    pg_temp.visible('authenticated', editor_uid, 'select count(*) from bookings') = 1);
+  -- Bookings and enquiries carry visitors' names, addresses and messages. The
+  -- split has always been that editors change content and owners and admins
+  -- handle the people who got in touch — but the policies used is_admin(),
+  -- which an editor satisfies, so the database allowed what the interface hid.
+  -- These four assertions are the fix, stated from the outside.
+  --
+  -- Zero rows rather than an exception: the SELECT grant is still there, so
+  -- what refuses an editor is the policy, and a policy denies by returning
+  -- nothing.
+  perform pg_temp.check('editor', 'cannot read bookings',
+    pg_temp.visible('authenticated', editor_uid, 'select count(*) from bookings') = 0);
 
-  perform pg_temp.check('editor', 'can read enquiries',
-    pg_temp.visible('authenticated', editor_uid, 'select count(*) from enquiries') = 1);
+  perform pg_temp.check('editor', 'cannot read enquiries',
+    pg_temp.visible('authenticated', editor_uid, 'select count(*) from enquiries') = 0);
+
+  perform pg_temp.check('editor', 'changes no booking rows',
+    pg_temp.rows_changed('authenticated', editor_uid,
+      'update bookings set status = ''cancelled''') = 0);
+
+  perform pg_temp.check('editor', 'changes no enquiry rows',
+    pg_temp.rows_changed('authenticated', editor_uid,
+      'update enquiries set status = ''spam''') = 0);
 
   perform pg_temp.check('editor', 'changes no settings rows',
     pg_temp.rows_changed('authenticated', editor_uid,
@@ -309,6 +328,16 @@ begin
     pg_temp.denied('authenticated', editor_uid,
       'insert into admin_profiles (auth_user_id, name, email, role)
        values (''44444444-4444-4444-4444-444444444444'', ''New'', ''new@example.com'', ''owner'')'));
+
+  perform pg_temp.check('owner', 'can read bookings',
+    pg_temp.visible('authenticated', owner_uid, 'select count(*) from bookings') = 1);
+
+  perform pg_temp.check('owner', 'can read enquiries',
+    pg_temp.visible('authenticated', owner_uid, 'select count(*) from enquiries') = 1);
+
+  perform pg_temp.check('owner', 'can change a booking status',
+    pg_temp.rows_changed('authenticated', owner_uid,
+      'update bookings set status = ''confirmed''') = 1);
 
   perform pg_temp.check('owner', 'can change site settings',
     not pg_temp.denied('authenticated', owner_uid,
