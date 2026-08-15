@@ -483,7 +483,44 @@ export async function getSocialLinks(): Promise<SocialLink[]> {
  * site of wrong content is a different thing.
  */
 export async function getContactEmail(): Promise<string> {
-  const fallback = (SEED_SETTINGS as Settings).contact_email;
+  return settingOrSeed("contact_email");
+}
+
+/**
+ * Where booking and enquiry notifications should be addressed.
+ *
+ * Empty rather than a seeded guess: this one is not shown to anybody, it
+ * decides where an email is sent, and sending the studio's post to an address
+ * out of a placeholder file is worse than falling through to the environment
+ * variable that has always worked.
+ */
+export async function getBookingEmail(): Promise<string | null> {
+  if (!isSupabaseConfigured()) return null;
+
+  try {
+    const supabase = publicClient();
+    const { data } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "booking_email")
+      .maybeSingle();
+    return (data as { value: string | null } | null)?.value ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** The <title> and the sentence under it in a search result. */
+export async function getSiteTitle(): Promise<string> {
+  return settingOrSeed("site_title");
+}
+
+export async function getSiteDescription(): Promise<string> {
+  return settingOrSeed("site_description");
+}
+
+async function settingOrSeed(key: SettingKey): Promise<string> {
+  const fallback = (SEED_SETTINGS as Settings)[key];
   if (!isSupabaseConfigured()) return fallback;
 
   try {
@@ -491,7 +528,7 @@ export async function getContactEmail(): Promise<string> {
     const { data } = await supabase
       .from("site_settings")
       .select("value")
-      .eq("key", "contact_email")
+      .eq("key", key)
       .maybeSingle();
     return (data as { value: string | null } | null)?.value || fallback;
   } catch {

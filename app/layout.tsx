@@ -12,6 +12,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { PageTransition } from "@/components/PageTransition";
 import { ScrollTemperature } from "@/components/ScrollTemperature";
 import { SceneRoot } from "@/components/three/SceneRoot";
+import { getSiteDescription, getSiteTitle } from "@/lib/content";
 
 /**
  * Three faces, three jobs.
@@ -44,34 +45,53 @@ const technicalMono = Geist_Mono({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
-  ),
-  title: "Loomie — Brand Identity & Digital Design Studio",
-  description:
-    "Loomie builds brand identities, digital systems and websites designed to stay coherent across every touchpoint.",
-  icons: {
-    icon: "/icon.svg",
-    shortcut: "/icon.svg",
-    apple: "/icon.svg",
-  },
-  openGraph: {
-    title: "Loomie — Brand Identity & Digital Design Studio",
-    description:
-      "Loomie builds brand identities, digital systems and websites designed to stay coherent across every touchpoint.",
-    url: "/",
-    siteName: "Loomie",
-    locale: "en_US",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Loomie — Brand Identity & Digital Design Studio",
-    description:
-      "Loomie builds brand identities, digital systems and websites designed to stay coherent across every touchpoint.",
-  },
-};
+/**
+ * Title and description come from the database.
+ *
+ * They were admin fields that changed nothing: the metadata below was a
+ * constant, so editing "Site title" in the admin updated a row and left every
+ * page's <title> alone.
+ *
+ * `generateMetadata` rather than a dynamic read: this uses the cookie-free
+ * client, so it runs at render time like any other data fetch and does not opt
+ * routes out of static rendering. Saving settings revalidates the public paths,
+ * which re-runs this with them.
+ *
+ * Never throws. If the database is unreachable the seeded values stand in —
+ * a page with a slightly stale title is a much smaller problem than a page
+ * that will not render at all, and unlike body content nobody edits their
+ * <title> expecting it to be the source of truth for anything.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const [title, description] = await Promise.all([
+    getSiteTitle(),
+    getSiteDescription(),
+  ]);
+
+  return {
+    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
+    title,
+    description,
+    icons: {
+      icon: "/icon.svg",
+      shortcut: "/icon.svg",
+      apple: "/icon.svg",
+    },
+    openGraph: {
+      title,
+      description,
+      url: "/",
+      siteName: "Loomie",
+      locale: "en_US",
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
 
 export default function RootLayout({
   children,
