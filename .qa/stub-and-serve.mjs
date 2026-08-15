@@ -20,6 +20,26 @@ const port = process.env.PORT ?? "3230";
 const stubPort = Number(process.env.STUB_PORT ?? 3394);
 const rest = await startPostgrestStub(stubPort, process.env.SUPABASE_DB_URL);
 
+/**
+ * An optional account, so /admin can be looked at signed in.
+ *
+ * Two halves have to agree: the stub's auth has to accept the password, and
+ * `admin_profiles` has to carry the row the application reads the role from.
+ * Set QA_ADMIN_EMAIL to switch it on; nothing is created without it.
+ */
+if (process.env.QA_ADMIN_EMAIL) {
+  const email = process.env.QA_ADMIN_EMAIL;
+  const { rows } = await rest.query(
+    `insert into admin_profiles (auth_user_id, name, email, role)
+     values (gen_random_uuid(), $1, $2, 'owner')
+     on conflict (lower(email)) do update set role = 'owner', is_active = true
+     returning auth_user_id`,
+    [process.env.QA_ADMIN_NAME ?? "QA Owner", email]
+  );
+  rest.addUser(rows[0].auth_user_id, email, process.env.QA_ADMIN_PASSWORD ?? "correct-horse");
+  console.log(`signed-in QA available as ${email}`);
+}
+
 const child = spawn("npx", ["next", "start", "-p", port], {
   cwd: "/home/user/loomieTeam",
   env: {

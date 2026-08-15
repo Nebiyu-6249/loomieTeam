@@ -104,7 +104,7 @@ const valid = (start, over = {}) => ({
   start,
   name: "Ada Lovelace",
   email: "ada@example.com",
-  service: "identity",
+  service: "logo-design",
   note: "Rebranding a small practice.",
   timezone: "Europe/London",
   company: "",
@@ -135,10 +135,16 @@ try {
   check("confirms the visitor was emailed", body.visitorConfirmed === true, String(body.visitorConfirmed));
   check("reports persistence honestly", body.persisted === true, String(body.persisted));
   check("two emails were actually sent", sent.length === 2, `sent=${sent.length}`);
+  // The studio's copy is addressed by the `booking_email` setting, which used
+  // to be an admin field nothing read; BOOKING_TO_EMAIL is now the fallback.
+  const studioAddress = (
+    await db.query("select value from site_settings where key = 'booking_email'")
+  ).rows[0]?.value || "studio@example.com";
+
   check(
     "one to the studio, one to the visitor",
-    sent[0]?.to?.[0] === "studio@example.com" && sent[1]?.to?.[0] === "ada@example.com",
-    JSON.stringify(sent.map((m) => m.to))
+    sent[0]?.to?.[0] === studioAddress && sent[1]?.to?.[0] === "ada@example.com",
+    `${JSON.stringify(sent.map((m) => m.to))} vs studio ${studioAddress}`
   );
   check(
     "studio mail replies to the visitor",
@@ -172,7 +178,7 @@ try {
   check("marked confirmed once the studio was told", row?.status === "confirmed", String(row?.status));
   check("studio_notified recorded", row?.studio_notified === true, String(row?.studio_notified));
   check("visitor_confirmed recorded", row?.visitor_confirmed === true, String(row?.visitor_confirmed));
-  check("joined to the chosen service", row?.service_slug === "identity", String(row?.service_slug));
+  check("joined to the chosen service", row?.service_slug === "logo-design", String(row?.service_slug));
   check("start matches the slot", row && new Date(row.start_at).toISOString() === start, `${row?.start_at} vs ${start}`);
   check("ends after it starts", row && new Date(row.end_at) > new Date(row.start_at), `${row?.end_at}`);
   check("the note is stored", row?.note === "Rebranding a small practice.", String(row?.note));

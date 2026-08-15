@@ -31,7 +31,7 @@ const r = await fetch("http://localhost:3341/api/booking", {
   headers: { "Content-Type": "application/json", "X-Forwarded-For": "198.51.100.5" },
   body: JSON.stringify({
     start: av.slots[0].start, name: "Ada Lovelace", email: "ada@example.com",
-    service: "identity", note: "Hello.", timezone: "Europe/London",
+    service: "logo-design", note: "Hello.", timezone: "Europe/London",
     company: "", openedAt: Date.now() - 8000,
   }),
 });
